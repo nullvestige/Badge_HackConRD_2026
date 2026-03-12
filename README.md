@@ -23,9 +23,7 @@ Badge de conferencia hacker con firmware para **ESP32-C3**, diseñado para el ev
 
 - **Maze Runner** — juego de laberinto con motor de raycaster 3D, música no bloqueante y efectos de sonido
 - **Dino Run** — corre con el dinosaurio, esquiva obstáculos, aves desde el inicio y música de fondo (Imperial March)
-- **GTA** — juego estilo GTA top-down
-- **Pokémon** — juego estilo Pokémon
-- **Race** — juego de carreras
+- **Hackermon** — juego estilo Pokémon
 
 ### Sistema RF (433 MHz)
 
@@ -83,17 +81,3 @@ arduino-cli upload -p COM<N> --fqbn esp32:esp32:esp32c3 "custom badge"
 arduino-cli monitor -p COM<N> --config baudrate=115200
 ```
 
----
-
-## Estructura del código
-
-| Archivo | Contenido |
-|---|---|
-| `badge.ino` | Firmware principal (~5700 líneas): setup, loop, UI, radio, NVS, navegación |
-| `game_maze.h` | Juego Maze Runner con motor raycaster |
-| `game_dino.h` | Juego Dino Run |
-| `game_gta.h` | Juego estilo GTA |
-| `game_pokemon.h` | Juego estilo Pokémon |
-| `game_race.h` | Juego de carreras |
-| `saver.h` / `saver_gif.h` | Screensaver animado |
-| `logo.h` | Datos del logo de arranque |

@@ -829,22 +829,22 @@ static void uiSmallStatusRX() {
 // añadir una entrada en SAVERS[]. Nada más.
 
 static const uint8_t saverBits_itachi[] PROGMEM = {
-#include "itachi_saver.h"
+#include "img/itachi_saver.h"
 };
 static const uint8_t saverBits_id[] PROGMEM = {
-#include "id_saver.h"
+#include "img/id_saver.h"
 };
 static const uint8_t saverBits_nika[] PROGMEM = {
-#include "nika_saver.h"
+#include "img/nika_saver.h"
 };
 static const uint8_t saverBits_rickmorty[] PROGMEM = {
-#include "rickmorty_saver.h"
+#include "img/rickmorty_saver.h"
 };
 static const uint8_t saverBits_bulbasaur[] PROGMEM = {
-#include "bulbasaur_saver.h"
+#include "img/bulbasaur_saver.h"
 };
 static const uint8_t saverBits_boot_sp[] PROGMEM = {
-#include "boot_sp.h"
+#include "img/boot_sp.h"
 };
 
 
@@ -888,7 +888,7 @@ static const int BOOT_LOGO_W = 140;
 static const int BOOT_LOGO_H = 140;
 
 static const uint8_t bootLogoColor[] PROGMEM = {
-#include "logo.h"
+#include "img/logo.h"
 };
 
 static void drawBootLogoCentered() {
@@ -916,7 +916,7 @@ static void drawBootLogoCentered() {
 
 // ===== Boot splash (Color, 240x240) =====
 static const uint8_t bootSplashColor[] PROGMEM = {
-#include "boot_sp.h"
+#include "img/boot_sp.h"
 };
 
 static void drawBootSplash() {
