@@ -837,14 +837,11 @@ static const uint8_t saverBits_id[] PROGMEM = {
 static const uint8_t saverBits_nika[] PROGMEM = {
 #include "nika_saver.h"
 };
-static const uint8_t saverBits_zelda[] PROGMEM = {
-#include "zelda_saver.h"
+static const uint8_t saverBits_rickmorty[] PROGMEM = {
+#include "rickmorty_saver.h"
 };
 static const uint8_t saverBits_bulbasaur[] PROGMEM = {
 #include "bulbasaur_saver.h"
-};
-static const uint8_t saverBits_attontitan[] PROGMEM = {
-#include "attontitan_saver.h"
 };
 
 
@@ -860,9 +857,8 @@ static const SaverDef SAVERS[] = {
   { "Itachi",     saverBits_itachi,     false, false },
   { "ID Card",    saverBits_id,         true,  true  },
   { "Nika",       saverBits_nika,       false, false },
-  { "Zelda",      saverBits_zelda,      false, false },
+  { "RickMorty",  saverBits_rickmorty,      false, false },
   { "Bulbasaur",  saverBits_bulbasaur,  false, false },
-  { "Titan",      saverBits_attontitan, false, false },
 };
 static const uint8_t SAVER_COUNT = sizeof(SAVERS) / sizeof(SAVERS[0]);
 
