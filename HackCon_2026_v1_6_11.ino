@@ -843,6 +843,9 @@ static const uint8_t saverBits_rickmorty[] PROGMEM = {
 static const uint8_t saverBits_bulbasaur[] PROGMEM = {
 #include "bulbasaur_saver.h"
 };
+static const uint8_t saverBits_boot_sp[] PROGMEM = {
+#include "boot_sp.h"
+};
 
 
 struct SaverDef {
@@ -853,22 +856,24 @@ struct SaverDef {
 };
 
 static const SaverDef SAVERS[] = {
-  //                name           bits                  overlay  mono
+  // name         bits                  overlay  mono
   { "Itachi",     saverBits_itachi,     false, false },
   { "ID Card",    saverBits_id,         true,  true  },
   { "Nika",       saverBits_nika,       false, false },
   { "RickMorty",  saverBits_rickmorty,      false, false },
   { "Bulbasaur",  saverBits_bulbasaur,  false, false },
+  { "Sponsors",   saverBits_boot_sp,    false, false },
 };
+
 static const uint8_t SAVER_COUNT = sizeof(SAVERS) / sizeof(SAVERS[0]);
 
 static uint8_t selectedSaver = 0;
 
 static uint8_t loadSaverIndex() {
   prefs.begin("hackcon", true);
-  uint8_t v = prefs.getUChar("saver", 1);  // default: ID Card
+  uint8_t v = prefs.getUChar("saver", 5);  // default: Sponsors
   prefs.end();
-  if (v >= SAVER_COUNT) v = 1;
+  if (v >= SAVER_COUNT) v = 5;
   return v;
 }
 static void saveSaverIndex(uint8_t v) {
@@ -901,7 +906,7 @@ static void drawBootLogoCentered() {
       // The image converter outputs high byte followed by low byte
       uint8_t hi = bootLogoColor[idx];
       uint8_t lo = bootLogoColor[idx + 1];
-      
+
       // Reconstruct the 16-bit color correctly
       lineBuf[j] = (hi << 8) | lo;
     }
@@ -909,11 +914,36 @@ static void drawBootLogoCentered() {
   }
 }
 
+// ===== Boot splash (Color, 240x240) =====
+static const uint8_t bootSplashColor[] PROGMEM = {
+#include "boot_sp.h"
+};
+
+static void drawBootSplash() {
+  busForTFT();
+  uint16_t lineBuf[240];
+  tft.startWrite();
+  tft.setAddrWindow(0, 0, 240, 240);
+  for (int i = 0; i < 240; i++) {
+    for (int j = 0; j < 240; j++) {
+      int idx = (i * 240 + j) * 2;
+      uint8_t hi = pgm_read_byte(&bootSplashColor[idx]);
+      uint8_t lo = pgm_read_byte(&bootSplashColor[idx + 1]);
+      lineBuf[j] = (hi << 8) | lo;
+    }
+    tft.writePixels(lineBuf, 240);
+  }
+  tft.endWrite();
+}
+
 // ======================= Splash =======================
 static void bootSequence() {
   drawBootLogoCentered();
+  delay(1500);
 
-  delay(2000);
+  drawBootSplash();
+  delay(1500);
+
   busForTFT();
   tft.fillScreen(COLBLACK);
   uiFrame();
@@ -3508,7 +3538,7 @@ static void drawMenu() {
 
   drawScrollbarGeneric(MENU_LIST_X, MENU_LIST_Y, MENU_LIST_W, MENU_LIST_H, MENU_VISIBLE_ROWS, total, topIndex);
 
-  uiFooter("UP/DOWN move   OK select   BACK none");
+  uiFooter("UP/DOWN move   OK select");
 }
 
 // ======================= Screen saver =======================
@@ -4830,6 +4860,12 @@ void loop() {
         else if (menuIndex == 3) goTo(MODE_LEARNING);
         else if (menuIndex == 4) goTo(MODE_SETTINGS);
       }
+    }
+
+    // Mantener BACK presionado desde el menú principal = entrar al lock screen inmediatamente
+    if (backHoldDetect(800)) {
+      enterScreensaver();
+      return;
     }
 
     powerLedsTick();
