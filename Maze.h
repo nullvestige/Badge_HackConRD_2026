@@ -494,7 +494,7 @@ static void drawGame() {
 
 static void gameTick(ButtonsEdge &b) {
   if (gameWon) {
-    if (b.back || b.ok) goTo(MODE_MENU);
+    if (b.back || b.ok) goTo(MODE_GAMES_MENU);
     return;
   }
 
@@ -505,7 +505,7 @@ static void gameTick(ButtonsEdge &b) {
     if (b.back) { gamePaused = false; gameRenderFrame(); gameDrawHUD(); }
     if (b.ok) {
       if (gamePauseIdx == 0) { gamePaused = false; gameRenderFrame(); gameDrawHUD(); }
-      else                   { goTo(MODE_MENU); return; }
+      else                   { goTo(MODE_GAMES_MENU); return; }
     }
     return;
   }

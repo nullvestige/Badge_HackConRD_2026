@@ -35,6 +35,10 @@ enum ScreenMode : uint8_t {
   MODE_SETTINGS,
   MODE_THE_KEY,
   MODE_FIRST_BOOT,
+  MODE_GAMES_MENU,
+  MODE_DINO,
+  MODE_MAZE,
+  MODE_HACKMON,
 };
 static ScreenMode mode = MODE_MENU;
 
@@ -149,8 +153,10 @@ static void     saveLedSetPrincipal(LedSet s);
 static LedTheme loadLedTheme();
 static void     saveLedTheme(LedTheme t);
 
-static bool loadBuzzerEnabled();
-static void saveBuzzerEnabled(bool e);
+static bool    loadBuzzerEnabled();
+static void    saveBuzzerEnabled(bool e);
+static uint8_t loadBuzzerVolume();
+static void    saveBuzzerVolume(uint8_t v);
 
 // ======================= PINES =======================
 #define TFT_CS    7
@@ -164,7 +170,8 @@ static void saveBuzzerEnabled(bool e);
 #define RF_MOSI_PIN   6
 #define RF_SCK_PIN    4
 
-#define BUZZER_PIN    21
+#define BUZZER_PIN      21
+#define BUZZER_LEDC_RES  8   // 8-bit: 0-255
 
 #define PUSH1PIN  1   // UP
 #define PUSH2PIN  2   // DOWN
@@ -252,13 +259,31 @@ static inline void noteActivity(bool any) {
 SPISettings rfSpiSet(1000000, MSBFIRST, SPI_MODE0);
 
 // ======================= BUZZER =======================
-static bool buzzerEnabled = false;
+static bool    buzzerEnabled = false;
+static uint8_t buzzerVolume  = 1;   // 0=Low  1=Medium  2=High
+
+static inline uint8_t _buzzerDuty() {
+  if (buzzerVolume == 0) return 2;    // ~0.8%  Low
+  if (buzzerVolume == 1) return 6;    // ~2.4%  Medium
+  return 16;                           // ~6.3%  High
+}
 
 static inline void beep(uint16_t ms) {
   if (!buzzerEnabled) return;
-  digitalWrite(BUZZER_PIN, HIGH);
+  ledcChangeFrequency(BUZZER_PIN, 1000, BUZZER_LEDC_RES);
+  ledcWrite(BUZZER_PIN, _buzzerDuty());
   delay(ms);
-  digitalWrite(BUZZER_PIN, LOW);
+  ledcWrite(BUZZER_PIN, 0);
+}
+
+static inline void buzzerTone(uint16_t freq) {
+  if (!buzzerEnabled || freq == 0) { ledcWrite(BUZZER_PIN, 0); return; }
+  ledcChangeFrequency(BUZZER_PIN, freq, BUZZER_LEDC_RES);
+  ledcWrite(BUZZER_PIN, _buzzerDuty());
+}
+
+static inline void buzzerNoTone() {
+  ledcWrite(BUZZER_PIN, 0);
 }
 
 static inline int16_t convertRssi(uint8_t raw) {
@@ -695,6 +720,18 @@ static bool loadBuzzerEnabled() {
 static void saveBuzzerEnabled(bool e) {
   prefs.begin("hackcon", false);
   prefs.putBool("buzz", e);
+  prefs.end();
+}
+static uint8_t loadBuzzerVolume() {
+  prefs.begin("hackcon", true);
+  uint8_t v = prefs.getUChar("buzzVol", 1);
+  prefs.end();
+  if (v > 2) v = 1;
+  return v;
+}
+static void saveBuzzerVolume(uint8_t v) {
+  prefs.begin("hackcon", false);
+  prefs.putUChar("buzzVol", v);
   prefs.end();
 }
 
@@ -1518,9 +1555,9 @@ static void storyFoxIntroShow() {
 
 
 // ======================= QUEST: ALIEN (Hidden Challenge) =======================
-#define QUEST_ALIEN_TRIGGER_FRIENDS  7  
-#define QUEST_ALIEN_NEED_MIN         7 
-#define QUEST_ALIEN_NEED_MAX         7 
+#define QUEST_ALIEN_TRIGGER_FRIENDS  1
+#define QUEST_ALIEN_NEED_MIN         1 
+#define QUEST_ALIEN_NEED_MAX         1 
 
 static bool     questAlienArmed = false;
 static bool     questAlienDone  = false;
@@ -1626,8 +1663,8 @@ static void questAlertEffect() {
     ledsMarkDirty();
     ledsCommitIfNeeded();
     
-    if (buzzerEnabled) digitalWrite(BUZZER_PIN, HIGH);
-    
+    if (buzzerEnabled) { ledcChangeFrequency(BUZZER_PIN, 1000, BUZZER_LEDC_RES); ledcWrite(BUZZER_PIN, _buzzerDuty()); }
+
     uint32_t t0 = millis();
     while (millis() - t0 < 80) {
       screensaverTick();
@@ -1635,12 +1672,12 @@ static void questAlertEffect() {
       // ledTick(); // Overwrites alert color
       delay(1);
     }
-    
+
     for (uint8_t j=0; j<NUM_LEDS; j++) leds[j] = CRGB::Black;
     ledsMarkDirty();
     ledsCommitIfNeeded();
 
-    if (buzzerEnabled) digitalWrite(BUZZER_PIN, LOW);
+    if (buzzerEnabled) ledcWrite(BUZZER_PIN, 0);
     
     t0 = millis();
     while (millis() - t0 < 80) {
@@ -2393,20 +2430,20 @@ static void l5AccessEffect(bool granted) {
   for (int i=0; i<3; i++) {
     for (uint8_t j=0; j<NUM_LEDS; j++) leds[j] = granted ? CRGB::Green : CRGB::Red;
     ledsMarkDirty(); ledsCommitIfNeeded();
-    if (buzzerEnabled) digitalWrite(BUZZER_PIN, HIGH);
-    
+    if (buzzerEnabled) { ledcChangeFrequency(BUZZER_PIN, granted ? 1200 : 400, BUZZER_LEDC_RES); ledcWrite(BUZZER_PIN, _buzzerDuty()); }
+
     uint32_t tOk = granted ? 60 : 120;
     uint32_t t0 = millis();
     while(millis() - t0 < tOk) {
       screensaverTick();
       powerLedsTick();
-      // ledTick(); 
+      // ledTick();
       delay(1);
     }
 
     for (uint8_t j=0; j<NUM_LEDS; j++) leds[j] = CRGB::Black;
     ledsMarkDirty(); ledsCommitIfNeeded();
-    if (buzzerEnabled) digitalWrite(BUZZER_PIN, LOW);
+    if (buzzerEnabled) ledcWrite(BUZZER_PIN, 0);
     
     t0 = millis();
     while(millis() - t0 < 60) {
@@ -3436,23 +3473,23 @@ static uint8_t menuIndex = 0;
 static inline bool keyUnlocked() { return questAlienDone; }
 
 static inline uint8_t menuCount() {
-  return keyUnlocked() ? 6 : 5; // 6; // 
+  return keyUnlocked() ? 7 : 6;
 }
 
 static inline const char* menuItem(uint8_t i) {
   if (i == 0) return "Go Hunting";
   if (i == 1) return "Friends";
-  
+  if (i == 2) return "Games";
+
   if (keyUnlocked()) {
-    if (i == 2) return "THE KEY";
+    if (i == 3) return "THE KEY";
+    if (i == 4) return "THE BOX";
+    if (i == 5) return "Learning";
+    if (i == 6) return "Settings";
+  } else {
     if (i == 3) return "THE BOX";
     if (i == 4) return "Learning";
     if (i == 5) return "Settings";
-  } else {
-    // Si THE KEY no está desbloqueado, las demás opciones suben un puesto
-    if (i == 2) return "THE BOX";
-    if (i == 3) return "Learning";
-    if (i == 4) return "Settings";
   }
   return "???";
 }
@@ -3734,8 +3771,12 @@ static void exitScreensaver() {
 static void screensaverTick() {
   if (bootToSaverActive) return;
 
+  // En juegos usamos timeout más largo para no interrumpir partidas activas
+  const bool inGame = (mode == MODE_DINO || mode == MODE_MAZE || mode == MODE_HACKMON);
   // const uint32_t IDLE_SAVER_MS = 30UL * 1000UL;  // 30s (DEV)
-  const uint32_t IDLE_SAVER_MS = 1UL * 60UL * 1000UL; // 1 min (PROD)
+  const uint32_t IDLE_SAVER_MS = inGame
+    ? 5UL * 60UL * 1000UL   // 5 min mientras se juega
+    : 1UL * 60UL * 1000UL;  // 1 min en el resto
 
   bool idle = (millis() - lastActivityMs) > IDLE_SAVER_MS;
 
@@ -3808,6 +3849,45 @@ static void drawFriendsMenu() {
   }
 
   uiFooter("UP/DOWN sel   OK open   BACK menu");
+}
+
+// ======================= GAMES MENU =======================
+static uint8_t gamesMenuIndex = 0;
+static const char* GAMES_MENU_ITEMS[] = { "Dino Run", "Maze", "HackerMon" };
+static const uint8_t GAMES_MENU_COUNT = 3;
+
+static void drawGamesMenu() {
+  busForTFT();
+  tft.fillScreen(COLBLACK);
+  uiFrame();
+  uiTitle("GAMES");
+
+  tft.drawRect(MENU_LIST_X, MENU_LIST_Y, MENU_LIST_W, MENU_LIST_H, COLDARK);
+
+  uint8_t total = GAMES_MENU_COUNT;
+  if (gamesMenuIndex >= total) gamesMenuIndex = 0;
+
+  tft.fillRect(MENU_LIST_X+1, MENU_LIST_Y+1, MENU_LIST_W-2, MENU_LIST_H-2, COLBLACK);
+
+  for (uint8_t r = 0; r < total; r++) {
+    int y = MENU_LIST_Y + 15 + r * MENU_ROW_H;
+    int textY = y + 3;
+    bool sel = (r == gamesMenuIndex);
+
+    if (sel) {
+      tft.fillRoundRect(MENU_LIST_X+8, y-4, MENU_LIST_W-18, 30, 6, COLDARK);
+      tft.drawRoundRect(MENU_LIST_X+8, y-4, MENU_LIST_W-18, 30, 6, COLNEON);
+      tft.setTextColor(COLNEON);
+    } else {
+      tft.setTextColor(COLDIM);
+    }
+
+    tft.setTextSize(2);
+    tft.setCursor(MENU_LIST_X+16, textY);
+    tft.print(GAMES_MENU_ITEMS[r]);
+  }
+
+  uiFooter("UP/DOWN sel   OK play   BACK menu");
 }
 
 static void drawFriendsScan() {
@@ -4091,6 +4171,7 @@ enum SettingsEditMode : uint8_t {
   EDIT_THEME,
   EDIT_LEDSET,
   EDIT_BUZZER,
+  EDIT_BUZZER_VOL,
   EDIT_NICK,
   EDIT_BADGE_ROLE,
   EDIT_FACTORY_RESET,
@@ -4105,6 +4186,7 @@ static uint8_t       editLedBrightness;
 static LedTheme      editLedTheme;
 static LedSet        editLedSet;
 static bool          editBuzzerEnabled;
+static uint8_t       editBuzzerVolume;
 static BadgeRole     editBadgeRole;
 static uint8_t       editSaverIndex;
 static uint8_t       factoryOkCount = 0;
@@ -4126,6 +4208,7 @@ enum SettingsItem : uint8_t {
   S_LED_THEME,
   S_LED_SET,
   S_BUZZER,
+  S_BUZZER_VOL,
   S_SAVER,
   S_FACTORY_RESET,
   S_COUNT
@@ -4140,6 +4223,7 @@ static const char* SETTINGS_TITLES[S_COUNT] = {
   "LED Theme",
   "LED Set",
   "Buzzer",
+  "Buzzer Volume",
   "Lock Screen",
   "Factory Reset"
 };
@@ -4161,6 +4245,9 @@ static void settingsValueStr(uint8_t i, char* out, size_t outLen) {
     snprintf(out, outLen, "%s", LEDSET_NAMES[(uint8_t)ledSetPrincipal]);
   } else if (i == S_BUZZER) {
     snprintf(out, outLen, "%s", buzzerEnabled ? "ON" : "OFF");
+  } else if (i == S_BUZZER_VOL) {
+    const char* vnames[] = { "Low", "Medium", "High" };
+    snprintf(out, outLen, "%s", vnames[buzzerVolume]);
   } else if (i == S_NICK) {
     snprintf(out, outLen, "%s", badgeNick);
   } else if (i == S_BADGE_ROLE) {
@@ -4399,6 +4486,27 @@ static void drawSettingsBuzzerEdit() {
   uiFooter("UP/DOWN edit   OK save   BACK cancel");
 }
 
+static void drawSettingsBuzzerVolEdit() {
+  busForTFT();
+  tft.fillScreen(COLBLACK);
+  uiFrame();
+  uiTitle("BUZZER VOLUME");
+
+  tft.setTextSize(1);
+  tft.setTextColor(COLDIM);
+  tft.setCursor(10, 48);
+  tft.print("Select your preferred buzzer volume");
+
+  tft.drawRect(10, 82, 220, 70, COLDARK);
+  tft.setTextSize(3);
+  tft.setTextColor(COLNEON);
+  tft.setCursor(26, 104);
+  const char* vnames[] = { "Low", "Medium", "High" };
+  tft.print(vnames[editBuzzerVolume]);
+
+  uiFooter("UP/DOWN edit   OK save   BACK cancel");
+}
+
 static char nickNextChar(char c, int dir) {
   const char set[] = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
   const int n = (int)(sizeof(set)-1);
@@ -4572,10 +4680,20 @@ static void updateFoxHuntBar() {
   tft.print("PEAK: "); tft.print(peak);
 }
 
+// ======================= GAMES =======================
+#include "Dino.h"
+#include "Maze.h"
+#include "HackerMon.h"
+
 // ======================= UI control =======================
 static void goTo(ScreenMode m, bool skipIntro) {
   const ScreenMode prevMode = mode;
   const bool prevRf = rfWantedForMode(prevMode);
+
+  // Stop game audio when leaving a game mode
+  if (prevMode == MODE_DINO)    { dinoMusicStop();    buzzerNoTone(); }
+  if (prevMode == MODE_MAZE)    { gameMusicStop();    buzzerNoTone(); }
+  if (prevMode == MODE_HACKMON) { pkmMusicStop();     buzzerNoTone(); }
 
   // Change mode first (UI uses this)
   mode = m;
@@ -4661,13 +4779,52 @@ static void goTo(ScreenMode m, bool skipIntro) {
 
   } else if (mode == MODE_FIRST_BOOT) {
     drawFirstBootNickEdit();
+
+  } else if (mode == MODE_GAMES_MENU) {
+    drawGamesMenu();
+
+  } else if (mode == MODE_DINO) {
+    lastActivityMs = millis();
+    if (skipIntro) {
+      // Volver del screensaver: redibujar sin reiniciar la partida
+      if      (dinoSt.titleScreen) drawDino();
+      else if (dinoSt.gameOver)    dinoDrawGameOver();
+      else                         { dinoDrawAll(); dinoMusicStart(); }
+    } else {
+      drawDino();
+    }
+
+  } else if (mode == MODE_MAZE) {
+    lastActivityMs = millis();
+    if (skipIntro) {
+      // Volver del screensaver: redibujar sin reiniciar el laberinto
+      if (gamePaused)      gameDrawPauseMenu();
+      else if (gameWon)    { gameRenderFrame(); gameDrawHUD(); }
+      else                 { gameRenderFrame(); gameDrawHUD(); gameMusicStart(); }
+    } else {
+      drawGame();
+    }
+
+  } else if (mode == MODE_HACKMON) {
+    lastActivityMs = millis();
+    if (skipIntro) {
+      // Volver del screensaver: redibujar la pantalla correcta sin reiniciar
+      switch (pkmScreen) {
+        case PKM_SCREEN_OVERWORLD: pkmDrawOverworld(); pkmMusicStart(0); break;
+        case PKM_SCREEN_BATTLE:    pkmBattleDrawFull(); break;
+        case PKM_SCREEN_TERMINAL:  pkmDrawTerminal(); break;
+        case PKM_SCREEN_RESULT:    pkmDrawResult(pkmResultWon); break;
+      }
+    } else {
+      drawHackerMon();
+    }
   }
 }
 
 // ======================= SETUP / LOOP =======================
 void setup() {
-  pinMode(BUZZER_PIN, OUTPUT);
-  digitalWrite(BUZZER_PIN, LOW);
+  ledcAttach(BUZZER_PIN, 1000, BUZZER_LEDC_RES);
+  ledcWrite(BUZZER_PIN, 0);
 
   pinMode(PUSH1PIN, INPUT);
   pinMode(PUSH2PIN, INPUT);
@@ -4707,6 +4864,7 @@ void setup() {
   ledTheme        = loadLedTheme();
   ledSetPrincipal = loadLedSetPrincipal();
   buzzerEnabled   = loadBuzzerEnabled();
+  buzzerVolume    = loadBuzzerVolume();
   selectedSaver   = loadSaverIndex();
 
   radioProfile = loadRadioProfile();
@@ -4850,15 +5008,16 @@ void loop() {
     if (b.ok) {
       if (menuIndex == 0) goTo(MODE_FOX_HUNT);
       else if (menuIndex == 1) goTo(MODE_FRIENDS_MENU);
+      else if (menuIndex == 2) goTo(MODE_GAMES_MENU);
       else if (keyUnlocked()) {
-        if (menuIndex == 2) goTo(MODE_THE_KEY);
-        else if (menuIndex == 3) goTo(MODE_THE_BOX);
+        if (menuIndex == 3) goTo(MODE_THE_KEY);
+        else if (menuIndex == 4) goTo(MODE_THE_BOX);
+        else if (menuIndex == 5) goTo(MODE_LEARNING);
+        else if (menuIndex == 6) goTo(MODE_SETTINGS);
+      } else {
+        if (menuIndex == 3) goTo(MODE_THE_BOX);
         else if (menuIndex == 4) goTo(MODE_LEARNING);
         else if (menuIndex == 5) goTo(MODE_SETTINGS);
-      } else {
-        if (menuIndex == 2) goTo(MODE_THE_BOX);
-        else if (menuIndex == 3) goTo(MODE_LEARNING);
-        else if (menuIndex == 4) goTo(MODE_SETTINGS);
       }
     }
 
@@ -4937,14 +5096,14 @@ void loop() {
           for (int f=0; f<4; f++) {
             for (uint8_t j=0; j<NUM_LEDS; j++) leds[j] = CRGB(255, 80, 0);
             ledsMarkDirty(); ledsCommitIfNeeded();
-            if (buzzerEnabled) digitalWrite(BUZZER_PIN, HIGH);
-            
+            if (buzzerEnabled) { ledcChangeFrequency(BUZZER_PIN, 400, BUZZER_LEDC_RES); ledcWrite(BUZZER_PIN, _buzzerDuty()); }
+
             uint32_t t0 = millis();
             while (millis() - t0 < 80) { screensaverTick(); powerLedsTick(); /* ledTick(); */ delay(1); }
 
             for (uint8_t j=0; j<NUM_LEDS; j++) leds[j] = CRGB::Black;
             ledsMarkDirty(); ledsCommitIfNeeded();
-            if (buzzerEnabled) digitalWrite(BUZZER_PIN, LOW);
+            if (buzzerEnabled) ledcWrite(BUZZER_PIN, 0);
             
             t0 = millis();
             while (millis() - t0 < 80) { screensaverTick(); powerLedsTick(); /* ledTick(); */ delay(1); }
@@ -5741,6 +5900,10 @@ void loop() {
           settingsEdit = EDIT_BUZZER;
           editBuzzerEnabled = buzzerEnabled;
           drawSettingsBuzzerEdit();
+        } else if (settingsIndex == S_BUZZER_VOL) {
+          settingsEdit = EDIT_BUZZER_VOL;
+          editBuzzerVolume = buzzerVolume;
+          drawSettingsBuzzerVolEdit();
         } else if (settingsIndex == S_NICK) {
           settingsEdit = EDIT_NICK;
           memset(editNick, 0, sizeof(editNick));
@@ -5932,6 +6095,23 @@ void loop() {
       return;
     }
 
+    if (settingsEdit == EDIT_BUZZER_VOL) {
+      if (b.up)   { editBuzzerVolume = (editBuzzerVolume == 0) ? 2 : editBuzzerVolume - 1; drawSettingsBuzzerVolEdit(); }
+      if (b.down) { editBuzzerVolume = (editBuzzerVolume + 1) % 3; drawSettingsBuzzerVolEdit(); }
+      if (b.ok) {
+        buzzerVolume = editBuzzerVolume;
+        saveBuzzerVolume(buzzerVolume);
+        beep(15);
+        settingsEdit = EDIT_NONE;
+        drawSettings();
+      }
+      if (b.back) { settingsEdit = EDIT_NONE; drawSettings(); }
+      powerLedsTick();
+      ledTick();
+      delay(1);
+      return;
+    }
+
     if (settingsEdit == EDIT_NICK) {
       if (b.up) {
         editNick[editNickPos] = nickNextChar(editNick[editNickPos], +1);
@@ -6077,4 +6257,50 @@ void loop() {
     }
   }
   // goTo(MODE_MENU);
+
+  // ===== Games Menu =====
+  if (mode == MODE_GAMES_MENU) {
+    if (b.up)   { gamesMenuIndex = (gamesMenuIndex == 0) ? (GAMES_MENU_COUNT-1) : (gamesMenuIndex-1); drawGamesMenu(); }
+    if (b.down) { gamesMenuIndex = (gamesMenuIndex + 1) % GAMES_MENU_COUNT; drawGamesMenu(); }
+    if (b.ok) {
+      if (gamesMenuIndex == 0) goTo(MODE_DINO);
+      else if (gamesMenuIndex == 1) goTo(MODE_MAZE);
+      else if (gamesMenuIndex == 2) goTo(MODE_HACKMON);
+    }
+    if (b.back) goTo(MODE_MENU);
+    powerLedsTick();
+    ledTick();
+    delay(1);
+    return;
+  }
+
+  // ===== Dino Run =====
+  if (mode == MODE_DINO) {
+    dinoMusicTick();
+    dinoTick(b);
+    powerLedsTick();
+    ledTick();
+    delay(1);
+    return;
+  }
+
+  // ===== Maze =====
+  if (mode == MODE_MAZE) {
+    gameMusicTick();
+    gameTick(b);
+    powerLedsTick();
+    ledTick();
+    delay(1);
+    return;
+  }
+
+  // ===== HackerMon =====
+  if (mode == MODE_HACKMON) {
+    pkmMusicTick();
+    hackerMonTick(b);
+    powerLedsTick();
+    ledTick();
+    delay(1);
+    return;
+  }
 }

@@ -16,7 +16,7 @@
 //   4 = portal to next map
 
 #define PKM_MAP_W   20
-#define PKM_MAP_H   20
+#define PKM_MAP_H   17
 #define PKM_TILE    12   // world tile size (collision)
 #define PKM_TDRAW   12   // drawn tile size
 #define PKM_VP_W   240
@@ -45,9 +45,6 @@ static const uint8_t pkmMapForest[PKM_MAP_H][PKM_MAP_W] PROGMEM = {
   {1,0,0,0,1,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1},
   {1,0,1,0,0,0,1,1,0,1,0,1,1,0,0,0,0,1,0,1},
   {1,0,1,1,0,0,0,1,0,0,0,0,1,0,0,1,1,1,0,1},
-  {1,0,0,0,0,1,0,0,0,1,3,0,0,0,1,0,0,0,0,1},
-  {1,1,0,1,0,1,1,0,1,1,0,1,1,0,1,0,1,0,1,1},
-  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
 };
 
@@ -70,9 +67,6 @@ static const uint8_t pkmMapDesert[PKM_MAP_H][PKM_MAP_W] PROGMEM = {
   {1,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,1,0,0,1},
   {1,0,0,1,0,0,0,1,0,0,1,0,0,0,1,0,0,0,0,1},
   {1,1,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,1,0,1},
-  {1,0,0,0,1,0,0,0,0,1,0,0,1,0,0,0,0,0,0,1},
-  {1,0,1,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,1,1},
-  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
 };
 
@@ -95,9 +89,6 @@ static const uint8_t pkmMapSnow[PKM_MAP_H][PKM_MAP_W] PROGMEM = {
   {1,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,1},
   {1,0,1,0,0,0,0,0,1,0,0,1,0,0,0,0,1,0,0,1},
   {1,0,0,0,0,1,0,0,0,0,1,0,0,0,1,0,0,0,0,1},
-  {1,0,1,1,0,0,0,1,0,0,0,0,1,0,0,0,1,1,0,1},
-  {1,0,0,0,0,0,1,0,0,0,0,1,0,0,0,1,0,0,0,1},
-  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
 };
 
@@ -120,9 +111,6 @@ static const uint8_t pkmMapIsland[PKM_MAP_H][PKM_MAP_W] PROGMEM = {
   {1,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1},
   {1,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1,0,0,1},
   {1,0,1,0,0,1,0,0,0,0,1,0,0,0,1,0,0,1,0,1},
-  {1,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1},
-  {1,1,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,1,1},
-  {1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1},
   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
 };
 
@@ -274,6 +262,7 @@ static const PkmMove pkmMoves[PKM_MOVES] = {
 #define PKM_SCREEN_TERMINAL   3  // heal terminal dialog
 
 static uint8_t  pkmScreen;
+static bool     pkmResultWon = false;  // para redibujar result al volver del screensaver
 
 // Overworld state
 static uint8_t  pkmMapIdx;           // current map (0=Forest 1=Desert 2=Snow 3=Island)
@@ -359,14 +348,8 @@ static bool pkmIsPortal(int tx, int ty) {
 
 // ==================== CAMERA ====================
 static void pkmUpdateCamera() {
-  int cx = pkmPX * PKM_TDRAW - PKM_CX;
-  int cy = pkmPY * PKM_TDRAW - PKM_CY;
-  int maxX = PKM_MAP_W * PKM_TDRAW - PKM_VP_W;
-  int maxY = PKM_MAP_H * PKM_TDRAW - PKM_VP_H;
-  if (cx<0) cx=0; if (cx>maxX) cx=maxX;
-  if (cy<0) cy=0; if (cy>maxY) cy=maxY;
-  pkmCamX = (int16_t)cx;
-  pkmCamY = (int16_t)cy;
+  pkmCamX = 0;
+  pkmCamY = 0;
 }
 
 // ==================== TILE RENDERER ====================
@@ -728,7 +711,7 @@ static void pkmDrawHUD() {
   tft.print(pkmMapNames[mi]);
 
   tft.setTextColor(0x8410);
-  tft.setCursor(80, PKM_VP_H+16);
+  tft.setCursor(90, PKM_VP_H+16);
   tft.print("Def:");
   uint8_t dcount=0;
   for(int i=0;i<PKM_MAX_ENEMIES;i++) if(pkmDefeatedMask>>i&1) dcount++;
@@ -736,7 +719,7 @@ static void pkmDrawHUD() {
   tft.print(dcount); tft.print("/"); tft.print(PKM_MAX_ENEMIES);
 
   tft.setTextColor(0x8410);
-  tft.setCursor(148, PKM_VP_H+16);
+  tft.setCursor(178, PKM_VP_H+16);
   tft.print("XP:"); tft.setTextColor(0x07FF); tft.print(pkmXP);
 }
 
@@ -1138,29 +1121,37 @@ static void pkmDrawTerminal() {
   tft.drawRect(21, 61, 198, 118, COLDARK);
 
   tft.setTextSize(1);
+  // Box center X = 20 + 200/2 = 120. Each char = 6px wide at textSize=1.
   tft.setTextColor(0x07FF);
-  tft.setCursor(60, 70);
+  tft.setCursor(78, 70);   // "HEALING SPRING" 14*6=84 → 120-42=78
   tft.print("HEALING SPRING");
 
   tft.drawFastHLine(22, 82, 196, COLDARK);
 
   tft.setTextColor(0x07E0);
-  tft.setCursor(36, 92);
+  tft.setCursor(72, 92);   // "* You drink from" 16*6=96 → 120-48=72
   tft.print("* You drink from");
-  tft.setCursor(36, 104);
-  tft.print("  the spring...");
-  tft.setCursor(36, 116);
+  tft.setCursor(81, 104);  // "the spring..." 13*6=78 → 120-39=81
+  tft.print("the spring...");
   tft.setTextColor(0xFFFF);
+  tft.setCursor(66, 116);  // "HP fully restored!" 18*6=108 → 120-54=66
   tft.print("HP fully restored!");
 
-  tft.setTextColor(0xBDF7);
-  tft.setCursor(36, 130);
-  tft.print("HP: "); tft.print(pkmHP); tft.print(" -> ");
-  tft.setTextColor(0x07E0);
-  tft.print(pkmMaxHP);
+  {
+    char hpBuf[32];
+    snprintf(hpBuf, sizeof(hpBuf), "HP: %d -> %d", pkmHP, pkmMaxHP);
+    int startX = 120 - ((int)strlen(hpBuf) * 6) / 2;
+    char preBuf[24];
+    snprintf(preBuf, sizeof(preBuf), "HP: %d -> ", pkmHP);
+    tft.setTextColor(0xBDF7);
+    tft.setCursor(startX, 130);
+    tft.print(preBuf);
+    tft.setTextColor(0x07E0);
+    tft.print(pkmMaxHP);
+  }
 
   tft.setTextColor(COLDIM);
-  tft.setCursor(50, 158);
+  tft.setCursor(66, 158);  // "OK or BACK to exit" 18*6=108 → 120-54=66
   tft.print("OK or BACK to exit");
 }
 
@@ -1475,11 +1466,13 @@ static void pkmBattleTick(const ButtonsEdge& b) {
     if (b.ok || b.back) {
       pkmMusicStop();
       if (pkmGameOver) {
+        pkmResultWon = false;
         pkmDrawResult(false);
         pkmScreen = PKM_SCREEN_RESULT;
         return;
       }
       if (pkmGameWon) {
+        pkmResultWon = true;
         pkmDrawResult(true);
         pkmScreen = PKM_SCREEN_RESULT;
         pkmMusicStop();
@@ -1506,7 +1499,7 @@ static void pkmOverworldTick(const ButtonsEdge& b) {
   if (isPressed(PUSH2PIN) && isPressed(PUSH3PIN)) {
     pkmMusicStop();
     while (isPressed(PUSH2PIN) || isPressed(PUSH3PIN)) delay(10);
-    goTo(MODE_MENU);
+    goTo(MODE_GAMES_MENU);
     return;
   }
 
@@ -1669,7 +1662,7 @@ static void hackerMonTick(const ButtonsEdge& b) {
     }
     if (b.back) {
       pkmMusicStop();
-      goTo(MODE_MENU);
+      goTo(MODE_GAMES_MENU);
       return;
     }
   }
