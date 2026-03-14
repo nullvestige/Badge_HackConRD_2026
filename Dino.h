@@ -151,7 +151,13 @@ static void dinoSfxTick() {
 #define OBS_BIRD_HI   2   // bird at head height — must duck (y = GROUND_Y-60)
 #define OBS_BIRD_LO   3   // bird at torso height — must jump (y = GROUND_Y-35)
 #define OBS_ROCK      4   // wide flat rock on ground — must jump, cannot duck
-#define OBS_DOUBLE    5   // two small cacti side-by-side — must jump
+#define OBS_PAIR_SS   5   // small + small  (speed 5+)
+#define OBS_PAIR_SL   6   // small + tall   (speed 5+)
+#define OBS_PAIR_LS   7   // tall  + small  (speed 5+)
+#define OBS_PAIR_LL   8   // tall  + tall   (speed 7+)
+#define OBS_TRIO_SSS  9   // S+S+S          (speed 9+)
+#define OBS_TRIO_SLS  10  // S+L+S          (speed 9+)
+#define OBS_TRIO_LSL  11  // L+S+L          (speed 10+)
 
 // Colors (RGB565 constants, theme-neutral)
 #define DINO_COL_SKY    0x0000   // black sky
@@ -266,11 +272,14 @@ static void dinoDrawRock(int16_t x) {
   tft.fillRect(x + 18, by - 14,  6,  2, c);  // secondary bump
 }
 
-// Double cactus: two small cacti 10px apart — must jump
-static void dinoDrawDouble(int16_t x) {
-  dinoDrawCactusS(x);
-  dinoDrawCactusS(x + 18);
-}
+// Pair/trio combos — 14px spacing between each cactus
+static void dinoDrawPairSS(int16_t x)  { dinoDrawCactusS(x); dinoDrawCactusS(x+14); }
+static void dinoDrawPairSL(int16_t x)  { dinoDrawCactusS(x); dinoDrawCactusL(x+14); }
+static void dinoDrawPairLS(int16_t x)  { dinoDrawCactusL(x); dinoDrawCactusS(x+14); }
+static void dinoDrawPairLL(int16_t x)  { dinoDrawCactusL(x); dinoDrawCactusL(x+14); }
+static void dinoDrawTrioSSS(int16_t x) { dinoDrawCactusS(x); dinoDrawCactusS(x+14); dinoDrawCactusS(x+28); }
+static void dinoDrawTrioSLS(int16_t x) { dinoDrawCactusS(x); dinoDrawCactusL(x+14); dinoDrawCactusS(x+28); }
+static void dinoDrawTrioLSL(int16_t x) { dinoDrawCactusL(x); dinoDrawCactusS(x+14); dinoDrawCactusL(x+28); }
 
 // Erase dino area (fill with sky, restore ground strip below)
 static void dinoEraseDino(int16_t y, bool wasDucking) {
@@ -287,13 +296,26 @@ static void dinoEraseObs(const DinoObs& o) {
     tft.fillRect(o.x - 1, DINO_GROUND_Y - 37, 16, 38, DINO_COL_SKY);
   } else if (o.kind == OBS_ROCK) {
     tft.fillRect(o.x - 1, DINO_GROUND_Y - 17, 32, 18, DINO_COL_SKY);
-  } else if (o.kind == OBS_DOUBLE) {
-    tft.fillRect(o.x - 1, DINO_GROUND_Y - 21, 38, 22, DINO_COL_SKY);
+  } else if (o.kind == OBS_PAIR_SS) {
+    tft.fillRect(o.x - 1, DINO_GROUND_Y - 21, 28, 22, DINO_COL_SKY);
+    tft.drawFastHLine(o.x - 1, DINO_GROUND_Y, 30, DINO_COL_GROUND);
+  } else if (o.kind == OBS_PAIR_SL || o.kind == OBS_PAIR_LS) {
+    tft.fillRect(o.x - 1, DINO_GROUND_Y - 37, 28, 38, DINO_COL_SKY);
+    tft.drawFastHLine(o.x - 1, DINO_GROUND_Y, 30, DINO_COL_GROUND);
+  } else if (o.kind == OBS_PAIR_LL) {
+    tft.fillRect(o.x - 1, DINO_GROUND_Y - 37, 28, 38, DINO_COL_SKY);
+    tft.drawFastHLine(o.x - 1, DINO_GROUND_Y, 30, DINO_COL_GROUND);
+  } else if (o.kind == OBS_TRIO_SSS) {
+    tft.fillRect(o.x - 1, DINO_GROUND_Y - 21, 42, 22, DINO_COL_SKY);
+    tft.drawFastHLine(o.x - 1, DINO_GROUND_Y, 44, DINO_COL_GROUND);
+  } else if (o.kind == OBS_TRIO_SLS || o.kind == OBS_TRIO_LSL) {
+    tft.fillRect(o.x - 1, DINO_GROUND_Y - 37, 42, 38, DINO_COL_SKY);
+    tft.drawFastHLine(o.x - 1, DINO_GROUND_Y, 44, DINO_COL_GROUND);
   } else {
     int16_t by = (o.kind == OBS_BIRD_HI) ? DINO_GROUND_Y - 60 : DINO_GROUND_Y - 35;
     tft.fillRect(o.x - 1, by - 8, 24, 20, DINO_COL_SKY);
+    tft.drawFastHLine(o.x - 1, DINO_GROUND_Y, 26, DINO_COL_GROUND);
   }
-  tft.drawFastHLine(o.x - 1, DINO_GROUND_Y, 42, DINO_COL_GROUND);
 }
 
 // ==================== FULL FRAME DRAW ====================
@@ -325,14 +347,12 @@ static void dinoDrawAll() {
   tft.setTextColor(COLDIM);
   tft.setCursor(4, DINO_HUD_Y + 14);
   tft.print("HI:"); tft.print(dinoSt.hiScore);
-  for (uint8_t i = 0; i < dinoSt.lives && i < 3; i++)
-    tft.fillRect(196 + i * 14, DINO_HUD_Y + 4, 10, 10, COLNEON);
   tft.fillRect(4, DINO_HUD_Y + 28, 120, 4, COLDARK);
   int barW = ((int)dinoSt.speed * 120) / DINO_MAX_SPEED;
-  tft.fillRect(4, DINO_HUD_Y + 28, barW, 4, dinoSt.boosting ? COLRED : COLNEON);
-  tft.setTextColor(dinoSt.boosting ? COLRED : COLDIM);
+  tft.fillRect(4, DINO_HUD_Y + 28, barW, 4, COLNEON);
+  tft.setTextColor(COLDIM);
   tft.setCursor(128, DINO_HUD_Y + 26);
-  tft.print(dinoSt.boosting ? "BST" : "SPD");
+  tft.print("SPD");
 
   // Dino
   if (dinoSt.ducking) dinoDrawDucking(dinoSt.dinoY);
@@ -344,8 +364,14 @@ static void dinoDrawAll() {
     const DinoObs& o = dinoSt.obs[i];
     if      (o.kind == OBS_CACTUS_S) dinoDrawCactusS(o.x);
     else if (o.kind == OBS_CACTUS_L) dinoDrawCactusL(o.x);
-    else if (o.kind == OBS_ROCK)     dinoDrawRock(o.x);
-    else if (o.kind == OBS_DOUBLE)   dinoDrawDouble(o.x);
+    else if (o.kind == OBS_ROCK)      dinoDrawRock(o.x);
+    else if (o.kind == OBS_PAIR_SS)   dinoDrawPairSS(o.x);
+    else if (o.kind == OBS_PAIR_SL)   dinoDrawPairSL(o.x);
+    else if (o.kind == OBS_PAIR_LS)   dinoDrawPairLS(o.x);
+    else if (o.kind == OBS_PAIR_LL)   dinoDrawPairLL(o.x);
+    else if (o.kind == OBS_TRIO_SSS)  dinoDrawTrioSSS(o.x);
+    else if (o.kind == OBS_TRIO_SLS)  dinoDrawTrioSLS(o.x);
+    else if (o.kind == OBS_TRIO_LSL)  dinoDrawTrioLSL(o.x);
     else {
       int16_t by = (o.kind == OBS_BIRD_HI) ? DINO_GROUND_Y - 60 : DINO_GROUND_Y - 35;
       dinoDrawBird(o.x, by, (dinoSt.frameCount >> 3) & 1);
@@ -381,10 +407,10 @@ static void dinoInitGame() {
   dinoSt.ducking      = false;
   dinoSt.legPhase     = 0;
   dinoSt.legTimer     = 8;
-  dinoSt.speed        = 8;   // start at double speed
+  dinoSt.speed        = 3;   // start slow, increases with score
   dinoSt.score        = 0;
   dinoSt.lastSpeedUp  = 0;
-  dinoSt.lives        = 3;
+  dinoSt.lives        = 1;
   dinoSt.obsSpawnTimer= 60;
   dinoSt.frameCount   = 0;
   dinoSt.hitFlashUntil = 0;
@@ -408,21 +434,26 @@ static void dinoSpawnObs() {
   for (uint8_t i = 0; i < DINO_OBS_MAX; i++) {
     if (dinoSt.obs[i].x >= 0) continue;
     dinoSt.obs[i].x = DINO_W + 4;
-    uint8_t r = (uint8_t)(dinoSt.frameCount & 0xFF) ^ (uint8_t)(dinoSt.score & 0xFF);
-    // Bird probability scales with score: 1-in-8 at start → 1-in-4 after score 300
-    uint8_t birdMask = (dinoSt.score > 300) ? 0x03 : 0x07;
-    if ((r & birdMask) == 0) {
-      // Birds from the start; both heights available immediately
-      dinoSt.obs[i].kind = ((r >> 2) & 1) ? OBS_BIRD_HI : OBS_BIRD_LO;
-    } else if (dinoSt.score > 150 && (r & 0x07) == 0x05) {
-      // Double cactus unlocks after score 150
-      dinoSt.obs[i].kind = OBS_DOUBLE;
-    } else if (dinoSt.score > 80 && (r & 0x07) == 0x03) {
-      // Rock unlocks after score 80
-      dinoSt.obs[i].kind = OBS_ROCK;
-    } else {
-      dinoSt.obs[i].kind = (r & 1) ? OBS_CACTUS_L : OBS_CACTUS_S;
-    }
+    // XOR frame + score + upper nibble for better distribution
+    uint8_t r = (uint8_t)(dinoSt.frameCount & 0xFF)
+              ^ (uint8_t)(dinoSt.score & 0xFF)
+              ^ (uint8_t)(dinoSt.frameCount >> 4);
+    uint8_t sp = dinoSt.speed;
+
+    // Build pool of available obstacles — grows with speed
+    uint8_t pool[14];
+    uint8_t n = 0;
+    pool[n++] = OBS_CACTUS_S;
+    pool[n++] = OBS_CACTUS_L;
+    if (sp >= 5) { pool[n++] = OBS_PAIR_SS; pool[n++] = OBS_PAIR_SL;
+                   pool[n++] = OBS_PAIR_LS; }
+    if (sp >= 6) { pool[n++] = OBS_ROCK; }
+    if (sp >= 7) { pool[n++] = OBS_PAIR_LL;
+                   pool[n++] = OBS_BIRD_LO; pool[n++] = OBS_BIRD_HI; }
+    if (sp >= 9) { pool[n++] = OBS_TRIO_SSS;
+                   pool[n++] = OBS_TRIO_SLS; }
+    if (sp >= 10){ pool[n++] = OBS_TRIO_LSL; }
+    dinoSt.obs[i].kind = pool[r % n];
     return;
   }
 }
@@ -447,14 +478,17 @@ static bool dinoCheckHit(const DinoObs& o) {
   } else if (o.kind == OBS_ROCK) {
     ox1 = o.x + 1; oy1 = DINO_GROUND_Y - 16;
     ox2 = o.x + 27; oy2 = DINO_GROUND_Y;
-  } else if (o.kind == OBS_DOUBLE) {
-    // Two cacti: treat as one wide box covering both
-    ox1 = o.x + 1; oy1 = DINO_GROUND_Y - 20;
-    ox2 = o.x + 29; oy2 = DINO_GROUND_Y;
+  } else if (o.kind == OBS_PAIR_SS) {
+    ox1 = o.x + 1; oy1 = DINO_GROUND_Y - 20; ox2 = o.x + 26; oy2 = DINO_GROUND_Y;
+  } else if (o.kind == OBS_PAIR_SL || o.kind == OBS_PAIR_LS || o.kind == OBS_PAIR_LL) {
+    ox1 = o.x + 1; oy1 = DINO_GROUND_Y - 36; ox2 = o.x + 26; oy2 = DINO_GROUND_Y;
+  } else if (o.kind == OBS_TRIO_SSS) {
+    ox1 = o.x + 1; oy1 = DINO_GROUND_Y - 20; ox2 = o.x + 40; oy2 = DINO_GROUND_Y;
+  } else if (o.kind == OBS_TRIO_SLS || o.kind == OBS_TRIO_LSL) {
+    ox1 = o.x + 1; oy1 = DINO_GROUND_Y - 36; ox2 = o.x + 40; oy2 = DINO_GROUND_Y;
   } else {
     int16_t by = (o.kind == OBS_BIRD_HI) ? DINO_GROUND_Y - 60 : DINO_GROUND_Y - 35;
-    ox1 = o.x + 2; oy1 = by;
-    ox2 = o.x + 16; oy2 = by + 10;
+    ox1 = o.x + 2; oy1 = by; ox2 = o.x + 16; oy2 = by + 10;
   }
   return (dx1 < ox2 && dx2 > ox1 && dy1 < oy2 && dy2 > oy1);
 }
@@ -485,15 +519,13 @@ static void drawDino() {
   dinoDrawRunning(DINO_GROUND_Y - DINO_DINO_H_RUN, 0);
 
   tft.setTextColor(COLNEON);
-  tft.setCursor(90, 132);  // "OK = START" 10*6=60 → 120-30=90
+  tft.setCursor(90, 122);  // "OK = START"
   tft.print("OK = START");
   tft.setTextColor(COLDIM);
-  tft.setCursor(54, 148);  // "HOLD OK IN-GAME: BOOST" 22*6=132 → 120-66=54
-  tft.print("HOLD OK IN-GAME: BOOST");
-  tft.setCursor(87, 162);  // "BACK = MENU" 11*6=66 → 120-33=87
+  tft.setCursor(87, 136);  // "BACK = MENU"
   tft.print("BACK = MENU");
   { char hiBuf[12]; snprintf(hiBuf, sizeof(hiBuf), "HI:%d", dinoSt.hiScore);
-    tft.setCursor(120 - (int)(strlen(hiBuf)*6)/2, 174);  // centered, moved down to avoid overlap
+    tft.setCursor(120 - (int)(strlen(hiBuf)*6)/2, 150);
     tft.print(hiBuf); }
 
   tft.fillRect(0, DINO_GROUND_Y, DINO_W, 2, DINO_COL_GROUND);
@@ -521,12 +553,6 @@ static void dinoTick(ButtonsEdge b) {
   // While hitFlashUntil > now, skip game logic but keep music/LEDs running via caller.
   if (now < dinoSt.hitFlashUntil) { dinoSfxTick(); return; }
 
-  // ---- Speed-up beep end (non-blocking) ----
-  if (dinoSt.speedBeepUntil > 0 && now >= dinoSt.speedBeepUntil) {
-    if (buzzerEnabled) buzzerNoTone();
-    dinoSt.speedBeepUntil = 0;
-  }
-
   // ---- Active game ----
   dinoSfxTick();
   dinoSt.frameCount++;
@@ -535,11 +561,8 @@ static void dinoTick(ButtonsEdge b) {
   // Input
   if (b.up && onGround && !dinoSt.ducking) {
     dinoSt.dinoVY = DINO_JUMP_VY;
-    dinoSfxJump();
   }
   dinoSt.ducking = isPressed(PUSH2PIN) && onGround;
-  // OK held = boost: temporarily run 3 faster (capped at DINO_MAX_SPEED)
-  dinoSt.boosting = isPressed(PUSH4PIN);
 
   // Physics
   dinoSt.dinoVY += DINO_GRAVITY;
@@ -548,7 +571,6 @@ static void dinoTick(ButtonsEdge b) {
   if (dinoSt.dinoY >= groundTop) {
     dinoSt.dinoY  = groundTop;
     dinoSt.dinoVY = 0;
-    if (buzzerEnabled) buzzerNoTone();
   }
 
   // Leg animation (only on ground)
@@ -558,10 +580,6 @@ static void dinoTick(ButtonsEdge b) {
 
   // Scroll obstacles (boost adds +3, capped at DINO_MAX_SPEED)
   uint8_t scrollSpeed = dinoSt.speed;
-  if (dinoSt.boosting) {
-    scrollSpeed += 3;
-    if (scrollSpeed > DINO_MAX_SPEED) scrollSpeed = DINO_MAX_SPEED;
-  }
   for (uint8_t i = 0; i < DINO_OBS_MAX; i++) {
     if (dinoSt.obs[i].x < 0) continue;
     dinoSt.obs[i].x -= scrollSpeed;
@@ -602,16 +620,11 @@ static void dinoTick(ButtonsEdge b) {
     break;
   }
 
-  // Score + speed up (boosting counts double)
-  dinoSt.score += dinoSt.boosting ? 2 : 1;
-  if (dinoSt.score - dinoSt.lastSpeedUp >= 300 && dinoSt.speed < DINO_MAX_SPEED) {
+  // Score + automatic speed up every 100 points
+  dinoSt.score += 1;
+  if (dinoSt.score - dinoSt.lastSpeedUp >= 100 && dinoSt.speed < DINO_MAX_SPEED) {
     dinoSt.speed++;
     dinoSt.lastSpeedUp = dinoSt.score;
-    // Non-blocking beep: start tone, set deadline for buzzerNoTone()
-    if (buzzerEnabled) {
-      buzzerTone(1047);
-      dinoSt.speedBeepUntil = now + 60;
-    }
   }
 
   dinoDrawAll();
