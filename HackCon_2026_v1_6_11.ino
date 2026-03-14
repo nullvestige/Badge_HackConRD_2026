@@ -1555,9 +1555,9 @@ static void storyFoxIntroShow() {
 
 
 // ======================= QUEST: ALIEN (Hidden Challenge) =======================
-#define QUEST_ALIEN_TRIGGER_FRIENDS  1
-#define QUEST_ALIEN_NEED_MIN         1 
-#define QUEST_ALIEN_NEED_MAX         1 
+#define QUEST_ALIEN_TRIGGER_FRIENDS  7
+#define QUEST_ALIEN_NEED_MIN         7 
+#define QUEST_ALIEN_NEED_MAX         7 
 
 static bool     questAlienArmed = false;
 static bool     questAlienDone  = false;
@@ -3752,6 +3752,10 @@ static void enterScreensaver() {
   systemSuspended = true;
   screensaverDrawn = false;
 
+  // Silenciar música de juegos para que no siga sonando en el screensaver
+  // (buzzerNoTone es suficiente aquí; el restart se hace en exitScreensaver→goTo)
+  buzzerNoTone();
+
   rfPowerDown();
   drawScreensaverStatic();
 }
@@ -4811,7 +4815,7 @@ static void goTo(ScreenMode m, bool skipIntro) {
       // Volver del screensaver: redibujar la pantalla correcta sin reiniciar
       switch (pkmScreen) {
         case PKM_SCREEN_OVERWORLD: pkmDrawOverworld(); pkmMusicStart(0); break;
-        case PKM_SCREEN_BATTLE:    pkmBattleDrawFull(); break;
+        case PKM_SCREEN_BATTLE:    pkmBattleDrawFull(); pkmMusicStart(1); break;
         case PKM_SCREEN_TERMINAL:  pkmDrawTerminal(); break;
         case PKM_SCREEN_RESULT:    pkmDrawResult(pkmResultWon); break;
       }

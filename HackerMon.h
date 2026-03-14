@@ -748,16 +748,18 @@ static void pkmBattleDrawEnemyHP() {
   busForTFT();
   const PkmEnemy* e = &pkmEnemies[pkmBattleEnemyIdx];
   uint8_t emaxhp = e->maxHp;
-  int barW = 64;
+  int barW = 70;
   int filled = (pkmEnemyHP * barW) / (emaxhp > 0 ? emaxhp : 1);
   uint16_t col = (pkmEnemyHP > emaxhp/2) ? 0x07E0 :
                  (pkmEnemyHP > emaxhp/4) ? 0xFFE0 : 0xF800;
-  tft.fillRect(136, 50, barW, 6, 0x1882);
-  tft.fillRect(136, 50, filled, 6, col);
-  tft.drawRect(136, 50, barW, 6, 0x4208);
+  // Clear bar + numbers area inside enemy status box (top-left)
+  tft.fillRect(26, 26, 84, 17, 0x0000);
+  tft.fillRect(26, 26, barW, 7, 0x1882);
+  tft.fillRect(26, 26, filled, 7, col);
+  tft.drawRect(26, 26, barW, 7, 0x4208);
   tft.setTextSize(1);
   tft.setTextColor(0xBDF7);
-  tft.setCursor(136, 58);
+  tft.setCursor(26, 35);
   tft.print(pkmEnemyHP);
   tft.print("/");
   tft.print(emaxhp);
@@ -765,16 +767,18 @@ static void pkmBattleDrawEnemyHP() {
 
 static void pkmBattleDrawPlayerHP() {
   busForTFT();
-  int barW = 64;
+  int barW = 70;
   int filled = (pkmHP * barW) / (pkmMaxHP > 0 ? pkmMaxHP : 1);
   uint16_t col = (pkmHP > pkmMaxHP/2) ? 0x07E0 :
                  (pkmHP > pkmMaxHP/4) ? 0xFFE0 : 0xF800;
-  tft.fillRect(26, 126, barW, 6, 0x1882);
-  tft.fillRect(26, 126, filled, 6, col);
-  tft.drawRect(26, 126, barW, 6, 0x4208);
+  // Clear bar + numbers area inside player status box (bottom-right)
+  tft.fillRect(150, 111, 84, 17, 0x0000);
+  tft.fillRect(150, 111, barW, 7, 0x1882);
+  tft.fillRect(150, 111, filled, 7, col);
+  tft.drawRect(150, 111, barW, 7, 0x4208);
   tft.setTextSize(1);
   tft.setTextColor(0xBDF7);
-  tft.setCursor(26, 134);
+  tft.setCursor(150, 120);
   tft.print(pkmHP);
   tft.print("/");
   tft.print(pkmMaxHP);
@@ -793,8 +797,11 @@ static void pkmDrawEnemySprite(bool hurt) {
 
   int cx = 175, cy = 38;    // enemy sprite centre (top-right)
 
-  // Clear sprite area + name row
+  // Clear sprite area then restore grid texture so sprite doesn't sit on a flat patch
   tft.fillRect(cx-28, cy-26, 56, 64, bg);
+  for (int gx=120; gx<240; gx+=20) if (gx>=cx-28 && gx<cx+28) tft.drawFastVLine(gx, cy-26, 64, 0x0440);
+  for (int gy=10;  gy<79;  gy+=10) if (gy>=cy-26 && gy<cy+38) tft.drawFastHLine(cx-28, gy, 56, 0x0220);
+  for (int sl=2;   sl<79;  sl+=4)  if (sl>=cy-26 && sl<cy+38) tft.drawFastHLine(cx-28, sl, 56, 0x0008);
 
   // Draw a different shape per enemy index for visual variety
   switch(pkmBattleEnemyIdx) {
@@ -895,17 +902,6 @@ static void pkmDrawEnemySprite(bool hurt) {
     }
   }
 
-  // Name badge — drawn below sprite, centred in the left panel (0..119)
-  tft.setTextSize(1);
-  tft.setTextColor(hurt ? (uint16_t)0xFFFF : col);
-  const char* name = e->name;
-  int nameLen = 0;
-  for(const char* p=name;*p;p++) nameLen++;
-  int nameX = 180 - nameLen*3;  // centre on right panel (panel centre = 180)
-  if(nameX < 122) nameX = 122;
-  if(nameX > 233) nameX = 233;
-  tft.setCursor(nameX, 72);     // y=72: safely below all sprite shapes, inside enemy zone
-  tft.print(name);
 }
 
 // Player battle sprite — back-view hacker at desk with laptop, larger and more detailed
@@ -925,10 +921,13 @@ static void pkmDrawPlayerBattleSprite(bool hurt) {
   uint16_t chair = 0x3186;
   uint16_t bg    = 0x0410;
 
-  int cx=55, cy=112;
+  int cx=55, cy=136;
 
-  // Clear area
+  // Clear area then restore scanline texture so sprite blends with player field
   tft.fillRect(cx-30, cy-46, 60, 60, bg);
+  for (int gl=83; gl<156; gl+=8)
+    if (gl >= cy-46 && gl < cy+14)
+      tft.drawFastHLine(cx-30, gl, 60, 0x0208);
 
   // === CHAIR BACK ===
   tft.fillRect(cx-20, cy-44, 40, 32, chair);
@@ -986,11 +985,6 @@ static void pkmDrawPlayerBattleSprite(bool hurt) {
   tft.drawRect(cx-16, cy-24, 32, 12, outl);
   tft.drawRect(cx-18, cy-14, 36, 10, outl);
 
-  // === LABEL ===
-  tft.setTextSize(1);
-  tft.setTextColor(COLNEON);
-  tft.setCursor(cx-15, cy+2);
-  tft.print("HACKER");
 }
 
 static void pkmBattleDrawMsg(const char* line1, const char* line2=nullptr) {
@@ -1044,63 +1038,75 @@ static void pkmBattleDrawFull() {
   busForTFT();
   tft.fillScreen(0x0000);
 
-  // Enemy area — dark tech background with grid lines
-  tft.fillRect(0, 0, 240, 80, 0x0820);
-  for (int gx=0; gx<240; gx+=20)
-    tft.drawFastVLine(gx, 0, 80, 0x0440);
-  for (int gy=10; gy<80; gy+=10)
-    tft.drawFastHLine(0, gy, 120, 0x0220);
-  // Scanline overlay
-  for (int sl=2; sl<80; sl+=4)
-    tft.drawFastHLine(0, sl, 120, 0x0008);
-  tft.drawFastHLine(0, 80, 240, COLDARK);
-  tft.drawFastHLine(0, 81, 240, 0x0440);
+  // ── TOP HALF (y=0..78): Enemy field ─────────────────────────────────
+  // Background: dark tech blue across full width
+  tft.fillRect(0, 0, 240, 79, 0x0820);
+  // Grid texture only on the RIGHT side (where enemy sprite stands)
+  for (int gx=120; gx<240; gx+=20) tft.drawFastVLine(gx, 0, 79, 0x0440);
+  for (int gy=10;  gy<79;  gy+=10) tft.drawFastHLine(120, gy, 120, 0x0220);
+  for (int sl=2;   sl<79;  sl+=4)  tft.drawFastHLine(120, sl, 120, 0x0008);
 
-  // Player area — darker terminal bg
-  tft.fillRect(0, 82, 115, 76, 0x0208);
-  for (int gl=84; gl<158; gl+=8)
-    tft.drawFastHLine(0, gl, 115, 0x0310);
-  tft.drawRect(0, 82, 115, 76, COLDARK);
+  // Divider between halves
+  tft.drawFastHLine(0, 79, 240, COLDARK);
+  tft.drawFastHLine(0, 80, 240, 0x0440);
 
-  // Enemy status box — clean dark panel
-  tft.fillRect(120, 82, 120, 76, 0x0000);
-  tft.drawRect(119, 82, 121, 77, COLDARK);
-  tft.drawRect(120, 83, 119, 75, 0x0440);
-
-  // Enemy name
+  // Enemy status box — TOP-LEFT (Pokémon style)
+  const PkmEnemy* e = &pkmEnemies[pkmBattleEnemyIdx];
+  tft.fillRect(2, 3, 112, 52, 0x0000);
+  tft.drawRect(2, 3, 112, 52, 0x4208);
+  tft.drawRect(3, 4, 110, 50, 0x1882);
+  // Name (max 12 chars so it never overlaps the level)
   tft.setTextSize(1);
   tft.setTextColor(0xFFFF);
-  tft.setCursor(124, 88);
-  const PkmEnemy* e = &pkmEnemies[pkmBattleEnemyIdx];
-  tft.print(e->name);
-
-  // Enemy level
+  tft.setCursor(8, 10);
+  { char nm[13]; snprintf(nm, sizeof(nm), "%s", e->name); tft.print(nm); }
+  // Level — right-aligned at x=84 so even 12-char names leave a gap
   tft.setTextColor(0x8410);
-  tft.setCursor(124, 100);
-  tft.print("LV ");
+  tft.setCursor(84, 10);
+  tft.print("LV");
   tft.setTextColor(0xBDF7);
-  tft.print(e->maxHp / 5 + 2); // rough "level" from HP
-
-  // Enemy HP label
+  tft.print(e->maxHp / 5 + 2);
+  // Separator line
+  tft.drawFastHLine(3, 21, 110, 0x2945);
+  // HP label
   tft.setTextColor(0x8410);
-  tft.setCursor(124, 112);
+  tft.setCursor(8, 27);
   tft.print("HP");
 
-  pkmBattleDrawEnemyHP();
+  pkmBattleDrawEnemyHP();  // draws bar at (26,26) and numbers at (26,35)
 
-  // Player status box
-  tft.setTextColor(0x8410);
-  tft.setCursor(4, 86);
+  // ── BOTTOM HALF (y=81..155): Player field ───────────────────────────
+  // Background: darker teal — matches player sprite clear color (0x0410)
+  tft.fillRect(0, 81, 240, 75, 0x0410);
+  // Scanlines only on LEFT side (where player sprite stands)
+  for (int gl=83; gl<156; gl+=8) tft.drawFastHLine(0, gl, 115, 0x0208);
+  tft.drawRect(0, 81, 115, 75, COLDARK);
+
+  // Player status box — BOTTOM-RIGHT (Pokémon style)
+  tft.fillRect(126, 87, 112, 56, 0x0000);
+  tft.drawRect(126, 87, 112, 56, 0x4208);
+  tft.drawRect(127, 88, 110, 54, 0x1882);
+  // Name
+  tft.setTextSize(1);
+  tft.setTextColor(0x07FF);
+  tft.setCursor(132, 95);
   tft.print("HACKER");
-  tft.setTextColor(0xBDF7);
-  tft.setCursor(4, 100);
-  tft.print("LV "); tft.print(pkmLevel);
-  tft.setCursor(4, 112);
+  // Level
   tft.setTextColor(0x8410);
+  tft.setCursor(190, 95);
+  tft.print("LV");
+  tft.setTextColor(0xBDF7);
+  tft.print(pkmLevel);
+  // Separator line
+  tft.drawFastHLine(127, 106, 110, 0x2945);
+  // HP label
+  tft.setTextColor(0x8410);
+  tft.setCursor(132, 112);
   tft.print("HP");
 
-  pkmBattleDrawPlayerHP();
+  pkmBattleDrawPlayerHP();  // draws bar at (150,111) and numbers at (150,120)
 
+  // Sprites (drawn after backgrounds so they render on top)
   pkmDrawEnemySprite(false);
   pkmDrawPlayerBattleSprite(false);
 
@@ -1162,25 +1168,32 @@ static void pkmDrawResult(bool won) {
   tft.drawRect(20, 70, 200, 100, won ? (uint16_t)COLNEON : (uint16_t)0xF800);
   tft.drawRect(22, 72, 196,  96, won ? (uint16_t)COLDIM  : (uint16_t)0xA000);
 
+  // Box center X = 20 + 200/2 = 120. textSize=2: 12px/char. textSize=1: 6px/char.
   tft.setTextSize(2);
   tft.setTextColor(won ? (uint16_t)COLNEON : (uint16_t)0xF800);
-  if (won) { tft.setCursor(40, 82); tft.print("ALL CLEAR!"); }
-  else     { tft.setCursor(46, 82); tft.print("PWNED..."); }
+  if (won) { tft.setCursor(60, 82); tft.print("ALL CLEAR!"); }  // 10*12=120 → 120-60=60
+  else     { tft.setCursor(72, 82); tft.print("PWNED...");   }  //  8*12=96  → 120-48=72
 
   tft.setTextSize(1);
   tft.setTextColor(0xBDF7);
-  tft.setCursor(36, 106);
-  tft.print("Level: "); tft.print(pkmLevel);
-  tft.setCursor(36, 118);
-  tft.print("XP: "); tft.print(pkmXP);
-  tft.setCursor(36, 130);
-  tft.print("Defeated: ");
+
+  char rbuf[32];
+  snprintf(rbuf, sizeof(rbuf), "Level: %d", pkmLevel);
+  tft.setCursor(120 - (int)(strlen(rbuf) * 6) / 2, 106);
+  tft.print(rbuf);
+
+  snprintf(rbuf, sizeof(rbuf), "XP: %d", pkmXP);
+  tft.setCursor(120 - (int)(strlen(rbuf) * 6) / 2, 118);
+  tft.print(rbuf);
+
   uint8_t dc=0;
   for(int i=0;i<PKM_MAX_ENEMIES;i++) if(pkmDefeatedMask>>i&1) dc++;
-  tft.print(dc); tft.print("/"); tft.print(PKM_MAX_ENEMIES);
+  snprintf(rbuf, sizeof(rbuf), "Defeated: %d/%d", dc, PKM_MAX_ENEMIES);
+  tft.setCursor(120 - (int)(strlen(rbuf) * 6) / 2, 130);
+  tft.print(rbuf);
 
   tft.setTextColor(COLDIM);
-  tft.setCursor(30, 152);
+  tft.setCursor(63, 152);   // "OK=retry  BACK=menu" 19*6=114 → 120-57=63
   tft.print("OK=retry  BACK=menu");
 }
 
@@ -1599,8 +1612,8 @@ static void hackerMonTick(const ButtonsEdge& b) {
   if (pkmScreen == PKM_SCREEN_BATTLE) {
     // Battle controls (phase 0 = choosing move):
     //   UP    = cursor row up   (moves 0,1 top / 2,3 bottom)
-    //   DOWN  = cursor row down
-    //   BACK  = cursor column left  (col 0: indices 0,2)
+    //   UP    = previous move (wraps)
+    //   DOWN  = next move (wraps)
     //   OK    = confirm selected move
     //   DOWN+BACK held = flee (costs HP)
     if (pkmBattlePhase == 0 && !pkmBattleEnemyHurt && !pkmBattlePlayerHurt) {
@@ -1616,9 +1629,8 @@ static void hackerMonTick(const ButtonsEdge& b) {
         return;
       }
       bool navChanged = false;
-      if (b.up)   { if (pkmBattleCursor >= 2) { pkmBattleCursor -= 2; navChanged = true; } }
-      if (b.down) { if (pkmBattleCursor <  2) { pkmBattleCursor += 2; navChanged = true; } }
-      if (b.back) { pkmBattleCursor ^= 1; navChanged = true; } // toggle left/right column
+      if (b.up)   { pkmBattleCursor = (pkmBattleCursor + 3) % 4; navChanged = true; }
+      if (b.down) { pkmBattleCursor = (pkmBattleCursor + 1) % 4; navChanged = true; }
       if (b.ok) {
         if (pkmMovePP[pkmBattleCursor] > 0) {
           pkmMovePP[pkmBattleCursor]--;
@@ -1628,12 +1640,9 @@ static void hackerMonTick(const ButtonsEdge& b) {
           pkmBattleDelayMs = millis() + 1300;
           pkmBattlePhase = 1;
         } else {
-          // No PP — Struggle
-          pkmEnemyHP = pkmEnemyHP > 3 ? pkmEnemyHP-3 : 0;
-          if (pkmEnemyHP == 0) { pkmBattleWon=true; pkmBattleOver=true; }
-          pkmBattleDrawMsg("No PP left! Struggling!", nullptr);
-          pkmBattleDelayMs = millis() + 1300;
-          pkmBattlePhase = 1;
+          // Sin PP — no avanzar el turno, dejar elegir otro ataque
+          pkmBattleDrawMsg("No PP! Pick another.", nullptr);
+          return;
         }
         pkmBattleDrawEnemyHP();
         return;

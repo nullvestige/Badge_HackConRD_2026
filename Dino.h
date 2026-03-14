@@ -360,13 +360,18 @@ static void dinoDrawGameOver() {
   uiFrame();
   tft.setTextColor(COLRED);
   tft.setTextSize(2);
-  tft.setCursor(36, 70); tft.print("GAME OVER");
+  tft.setCursor(66, 70);   // "GAME OVER" 9*12=108 → 120-54=66
+  tft.print("GAME OVER");
   tft.setTextSize(1);
   tft.setTextColor(COLDIM);
-  tft.setCursor(64, 100); tft.print("OK = RETRY");
-  tft.setCursor(52, 116); tft.print("BACK = MENU");
-  tft.setCursor(64, 140); tft.print("SC:"); tft.print(dinoSt.score);
-  tft.setCursor(64, 154); tft.print("HI:"); tft.print(dinoSt.hiScore);
+  tft.setCursor(90, 100);  // "OK = RETRY" 10*6=60 → 120-30=90
+  tft.print("OK = RETRY");
+  tft.setCursor(87, 116);  // "BACK = MENU" 11*6=66 → 120-33=87
+  tft.print("BACK = MENU");
+  { char scBuf[16]; snprintf(scBuf, sizeof(scBuf), "SC:%d", dinoSt.score);
+    tft.setCursor(120 - (int)(strlen(scBuf)*6)/2, 140); tft.print(scBuf); }
+  { char hiBuf[16]; snprintf(hiBuf, sizeof(hiBuf), "HI:%d", dinoSt.hiScore);
+    tft.setCursor(120 - (int)(strlen(hiBuf)*6)/2, 154); tft.print(hiBuf); }
 }
 
 // ==================== INIT ====================
@@ -469,26 +474,27 @@ static void drawDino() {
 
   tft.setTextColor(COLNEON);
   tft.setTextSize(2);
-  tft.setCursor(60, 70);
+  tft.setCursor(72, 70);   // "DINO RUN" 8*12=96 → 120-48=72
   tft.print("DINO RUN");
   tft.setTextSize(1);
   tft.setTextColor(COLDIM);
-  tft.setCursor(44, 96);
+  tft.setCursor(78, 96);   // "HackConRD 2026" 14*6=84 → 120-42=78
   tft.print("HackConRD 2026");
 
   // Idle dino centered on ground line
   dinoDrawRunning(DINO_GROUND_Y - DINO_DINO_H_RUN, 0);
 
   tft.setTextColor(COLNEON);
-  tft.setCursor(72, 132);
+  tft.setCursor(90, 132);  // "OK = START" 10*6=60 → 120-30=90
   tft.print("OK = START");
   tft.setTextColor(COLDIM);
-  tft.setCursor(28, 148);
+  tft.setCursor(54, 148);  // "HOLD OK IN-GAME: BOOST" 22*6=132 → 120-66=54
   tft.print("HOLD OK IN-GAME: BOOST");
-  tft.setCursor(60, 162);
+  tft.setCursor(87, 162);  // "BACK = MENU" 11*6=66 → 120-33=87
   tft.print("BACK = MENU");
-  tft.setCursor(68, 170);
-  tft.print("HI:"); tft.print(dinoSt.hiScore);
+  { char hiBuf[12]; snprintf(hiBuf, sizeof(hiBuf), "HI:%d", dinoSt.hiScore);
+    tft.setCursor(120 - (int)(strlen(hiBuf)*6)/2, 174);  // centered, moved down to avoid overlap
+    tft.print(hiBuf); }
 
   tft.fillRect(0, DINO_GROUND_Y, DINO_W, 2, DINO_COL_GROUND);
 }
