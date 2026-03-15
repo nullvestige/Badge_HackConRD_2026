@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l /c/Users/m4xd3/Desktop/Projects/DOOM/linuxdoom-1.10/*.c)"
+    ]
+  }
+}

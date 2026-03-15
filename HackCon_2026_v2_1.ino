@@ -1,5 +1,5 @@
 // =====================================================
-// RF-CTF 433 (HackConRD26) - UI MATRIX THEME (v2.0)
+// RF-CTF 433 (HackConRD26) - UI MATRIX THEME (v2.1)
 // =====================================================
 
 #include <Arduino.h>
@@ -4687,9 +4687,9 @@ static void updateFoxHuntBar() {
 }
 
 // ======================= GAMES =======================
-#include "Dino.h"
-#include "Maze.h"
-#include "HackerMon.h"
+#include "games/Dino.h"
+#include "games/Maze.h"
+#include "games/HackerMon.h"
 
 // ======================= UI control =======================
 static void goTo(ScreenMode m, bool skipIntro) {
