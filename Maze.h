@@ -313,6 +313,7 @@ static void gameRenderFrame() {
     int wallH = drawEnd - drawStart + 1;
     for (int y = drawStart; y <= drawEnd; y++) {
       int texY = ((y - drawStart) << 6) / wallH;
+      if (texY < 0)  texY = 0;
       if (texY > 63) texY = 63;
       uint16_t c = gameWallPixel(wall, side, texX, texY);
       gameColBuf[y * 2]     = c;
@@ -348,7 +349,7 @@ static void gameRenderFrame() {
     int r  = sprH / 4;
     if (r < 2)  r = 2;
     if (r > 10) r = 10;
-    if (cx >= 2 && cx < GAME_W - 2 && cy >= 2 && cy < GAME_H - 2) {
+    if (cx-r >= 0 && cx+r < GAME_W && cy-r >= 0 && cy+r < GAME_H) {
       tft.fillCircle(cx, cy, r, 0xFFE0);
       tft.drawCircle(cx, cy, r, 0xFDA0);
     }
@@ -444,10 +445,7 @@ static void gameDrawPauseMenu() {
     tft.print(items[i]);
   }
 
-  tft.setTextSize(1);
-  tft.setTextColor(COLDIM);
-  tft.setCursor(10, 210);
-  tft.print("UP/DOWN sel   OK confirm   BACK resume");
+  uiFooter("UP/DN sel   OK confirm   BACK resume");
 }
 
 // ---- Win screen ---------------------------------------------------------
@@ -510,13 +508,11 @@ static void gameTick(ButtonsEdge &b) {
     return;
   }
 
-  // ---- Combo: DOWN + OK → open pause menu --------------------------------
-  if (isPressed(PUSH2PIN) && isPressed(PUSH4PIN)) {
-    gamePaused   = true;
-    gamePauseIdx = 0;
-    gameDrawPauseMenu();
-    // Wait for both buttons to be released before continuing
-    while (isPressed(PUSH2PIN) || isPressed(PUSH4PIN)) delay(10);
+  // ---- Combo: DOWN + BACK → exit to games menu (same as HackerMon) -------
+  if (isPressed(PUSH2PIN) && isPressed(PUSH3PIN)) {
+    gameMusicStop();
+    while (isPressed(PUSH2PIN) || isPressed(PUSH3PIN)) delay(10);
+    goTo(MODE_GAMES_MENU);
     return;
   }
 
@@ -540,6 +536,7 @@ static void gameTick(ButtonsEdge &b) {
   const float moveSpd = 0.12f;
   static const float rotC = 0.9968f; // cos(0.08 rad)
   static const float rotS = 0.0799f; // sin(0.08 rad)
+  static uint8_t rotFrames = 0;
 
   if (isPressed(PUSH1PIN)) { // UP = forward
     float nx = gpX + gdX * moveSpd;
@@ -566,6 +563,13 @@ static void gameTick(ButtonsEdge &b) {
     gdX = gdX * rotC - gdY * rotS;  gdY = od  * rotS + gdY * rotC;
     gcX = gcX * rotC - gcY * rotS;  gcY = oc  * rotS + gcY * rotC;
     moved = true;
+  }
+
+  // Renormalize direction vector every 60 rotation frames to prevent float drift
+  if (moved && ++rotFrames >= 60) {
+    rotFrames = 0;
+    float m = sqrtf(gdX * gdX + gdY * gdY);
+    if (m > 0.0f) { gdX /= m; gdY /= m; }
   }
 
   gameMoved = moved;

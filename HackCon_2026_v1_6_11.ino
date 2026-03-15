@@ -1930,8 +1930,9 @@ static void frfBuild(uint8_t out[32], uint8_t t, uint16_t from, uint16_t to,
   // data is now unused but kept in sig for backwards compat, put in out[8] 
   out[8] = data;
   
-  // Directly copy the static badgeNick to out[9..23]
-  strncpy((char*)&out[9], badgeNick, 14);
+  // Copy badgeNick (char[8]) to out[9..16]; zero-fill the remaining 6 bytes
+  memcpy((char*)&out[9], badgeNick, 8);
+  memset((char*)&out[17], 0, 6);
 }
 
 static bool frfParse(const uint8_t p[32], uint8_t &t, uint16_t &from, uint16_t &to,
@@ -4657,10 +4658,11 @@ static void updateFoxHuntBar() {
   tft.drawRect(barX, barY, barW, barH, COLDARK);
   
   int fillW = (int)((barW-2) * norm);
-  uint16_t color = COLNEON;
-  if (r > -65) color = COLRED;      // Near (Hot)
-  else if (r > -85) color = COLNEON; // Getting close (Warm)
-  else color = COLCYAN;             // Far (Cold)
+  static const uint16_t FOXGREEN = 0x07E0; // Fixed neon green — never changes with theme
+  uint16_t color = FOXGREEN;
+  if (r > -65) color = COLRED;       // Near (Hot)
+  else if (r > -85) color = FOXGREEN; // Getting close (Warm) — always green
+  else color = COLCYAN;              // Far (Cold)
 
   tft.fillRect(barX+1, barY+1, fillW, barH-2, color);
   tft.fillRect(barX+1+fillW, barY+1, (barW-2)-fillW, barH-2, COLBLACK);
@@ -5049,7 +5051,7 @@ void loop() {
   // ===== THE BOX =====
   if (mode == MODE_THE_BOX) {
     if (backHoldDetect(800)) {
-      strcpy(boxCodeInput, "AAAAAA");
+      strlcpy(boxCodeInput, "AAAAAA", sizeof(boxCodeInput));
       boxCodePos = 0;
       goTo(MODE_MENU);
       ledTick();
@@ -5804,7 +5806,7 @@ void loop() {
         uint32_t held = millis() - backDownMs;
         backDownMs = 0;
 
-        if (held < HOLD_MS) {
+        if (held < HOLD_MS && friendsListIndex < friendsCount) {
           char nbuf[9]; memset(nbuf, 0, sizeof(nbuf));
           strlcpy(nbuf, friends[friendsListIndex].nick, sizeof(nbuf));
           drawFriendsDeleteConfirm(nbuf);
@@ -6140,9 +6142,8 @@ void loop() {
         if (okHoldStart == 0) okHoldStart = millis();
         if (millis() - okHoldStart >= 900) {
           // === SAVE ===
-          char tmp[7]; memset(tmp,0,sizeof(tmp));
+          char tmp[8]; memset(tmp,0,sizeof(tmp));
           memcpy(tmp, editNick, 7);
-          tmp[7]=0;
           for (int i=6;i>=0;i--) {
             if (tmp[i]==' ') tmp[i]=0;
             else break;

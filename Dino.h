@@ -192,7 +192,6 @@ static struct {
   uint8_t  cloudW[DINO_CLOUD_COUNT];  // cloud widths (vary for visual interest)
   uint32_t hitFlashUntil;  // millis() deadline for hit-flash pause (non-blocking)
   uint32_t speedBeepUntil; // millis() deadline for speed-up beep (non-blocking)
-  bool     boosting;       // true while OK held — speed temporarily higher
   bool     gameOver;
   bool     titleScreen;
 } dinoSt;
@@ -415,7 +414,6 @@ static void dinoInitGame() {
   dinoSt.frameCount   = 0;
   dinoSt.hitFlashUntil = 0;
   dinoSt.speedBeepUntil= 0;
-  dinoSt.boosting     = false;
   dinoSt.gameOver     = false;
   dinoSt.titleScreen  = false;
   for (uint8_t i = 0; i < DINO_OBS_MAX; i++) dinoSt.obs[i].x = -1;
@@ -557,6 +555,14 @@ static void dinoTick(ButtonsEdge b) {
   dinoSfxTick();
   dinoSt.frameCount++;
   bool onGround = (dinoSt.dinoY >= DINO_GROUND_Y - DINO_DINO_H_RUN);
+
+  // DOWN + BACK held together = exit to games menu (same as HackerMon)
+  if (isPressed(PUSH2PIN) && isPressed(PUSH3PIN)) {
+    dinoMusicStop();
+    while (isPressed(PUSH2PIN) || isPressed(PUSH3PIN)) delay(10);
+    goTo(MODE_GAMES_MENU);
+    return;
+  }
 
   // Input
   if (b.up && onGround && !dinoSt.ducking) {

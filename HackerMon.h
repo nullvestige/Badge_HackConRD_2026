@@ -1269,6 +1269,7 @@ static uint8_t pkmPickEnemy() {
 }
 
 static void pkmStartBattle(uint8_t enemyIdx) {
+  if (enemyIdx >= PKM_MAX_ENEMIES) enemyIdx = 0;
   pkmBattleEnemyIdx = enemyIdx;
   uint8_t mhp = pkmEnemies[enemyIdx].maxHp;
   pkmEnemyHP       = mhp;
@@ -1352,7 +1353,7 @@ static void pkmEnemyAttack() {
 // Called after battle win — award XP, check level up
 static void pkmAwardXP() {
   uint8_t xpGain = pkmEnemies[pkmBattleEnemyIdx].xpGiven;
-  pkmDefeatedMask |= (1 << pkmBattleEnemyIdx);
+  if (pkmBattleEnemyIdx < PKM_MAX_ENEMIES) pkmDefeatedMask |= (1 << pkmBattleEnemyIdx);
   pkmXP += xpGain;
 
   uint8_t newLevel = pkmXPtoLevel(pkmXP);
