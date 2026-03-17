@@ -1510,9 +1510,9 @@ static void pkmOverworldTick(const ButtonsEdge& b) {
   uint32_t now = millis();
 
   // DOWN + BACK held together = exit to menu (like maze's pause combo)
-  if (isPressed(PUSH2PIN) && isPressed(PUSH3PIN)) {
+  if (isPressed(PUSH2PIN) && isPressed(PUSH4PIN)) {
     pkmMusicStop();
-    while (isPressed(PUSH2PIN) || isPressed(PUSH3PIN)) delay(10);
+    while (isPressed(PUSH2PIN) || isPressed(PUSH4PIN)) delay(10);
     goTo(MODE_GAMES_MENU);
     return;
   }
@@ -1619,11 +1619,11 @@ static void hackerMonTick(const ButtonsEdge& b) {
     //   DOWN+BACK held = flee (costs HP)
     if (pkmBattlePhase == 0 && !pkmBattleEnemyHurt && !pkmBattlePlayerHurt) {
       // Flee combo: DOWN + BACK held
-      if (isPressed(PUSH2PIN) && isPressed(PUSH3PIN)) {
+      if (isPressed(PUSH2PIN) && isPressed(PUSH4PIN)) {
         if (pkmHP > 5) pkmHP -= 5; else pkmHP = 1;
         pkmMusicStop();
         pkmMusicStart(0);
-        while (isPressed(PUSH2PIN) || isPressed(PUSH3PIN)) delay(10);
+        while (isPressed(PUSH2PIN) || isPressed(PUSH4PIN)) delay(10);
         pkmScreen = PKM_SCREEN_OVERWORLD;
         pkmUpdateCamera();
         pkmDrawOverworld();

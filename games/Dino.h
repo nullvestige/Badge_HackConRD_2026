@@ -10,63 +10,47 @@
 // ==================== MUSIC ====================
 struct DinoNote { uint16_t freq; uint16_t dur; };
 
-// Imperial March (Star Wars) — tempo 120
-// wholenote = (60000/120)*4 = 2000ms
-// quarter=500, dotted-quarter=750, eighth=250, dotted-eighth=375
-// half=1000, sixteenth=125, dotted-sixteenth=187
-// Freqs: A4=440 F4=349 C5=523 E5=659 F5=698 A5=880 GS5=830 G5=784
-//        DS5=622 D5=587 CS5=554 B4=494 GS4=415
-#define _IQ   500  // quarter
-#define _IDQ  750  // dotted quarter
-#define _I8   250  // eighth
-#define _ID8  375  // dotted eighth
-#define _IH  1000  // half
-#define _I16  125  // sixteenth
-#define _ID16 187  // dotted sixteenth
+// Dino Runner Theme — 8-bit prehistoric adventure, tempo 160 BPM
+// wholenote = (60000/160)*4 = 1500ms
+// quarter=375, dotted-quarter=563, eighth=188, dotted-eighth=281, half=750
+// Freqs: A4=440 B4=494 C5=523 D5=587 E5=659 G5=784 A5=880 B5=988 C6=1047
+#define _Q   375  // quarter
+#define _QD  563  // dotted quarter
+#define _8   188  // eighth
+#define _8D  281  // dotted eighth
+#define _H   750  // half
 
 static const DinoNote dinoMelody[] PROGMEM = {
-  // A4,-4 A4,-4 A4,16 A4,16 A4,16 A4,16 F4,8 REST,8
-  {440,_IDQ},{440,_IDQ},{440,_I16},{440,_I16},{440,_I16},{440,_I16},{349,_I8},{0,_I8},
-  // A4,-4 A4,-4 A4,16 A4,16 A4,16 A4,16 F4,8 REST,8
-  {440,_IDQ},{440,_IDQ},{440,_I16},{440,_I16},{440,_I16},{440,_I16},{349,_I8},{0,_I8},
-  // A4,4 A4,4 A4,4 F4,-8 C5,16
-  {440,_IQ},{440,_IQ},{440,_IQ},{349,_ID8},{523,_I16},
+  // Phrase A — ascent and descent
+  {659,_Q},{784,_Q},{880,_Q},{784,_Q},   // E5 G5 A5 G5
+  {659,_Q},{523,_Q},{440,_H},            // E5 C5 A4
+  {523,_Q},{587,_Q},{659,_Q},{784,_Q},   // C5 D5 E5 G5
+  {880,_QD},{784,_8},{659,_H},           // A5. G5 E5
 
-  // A4,4 F4,-8 C5,16 A4,2
-  {440,_IQ},{349,_ID8},{523,_I16},{440,_IH},
-  // E5,4 E5,4 E5,4 F5,-8 C5,16
-  {659,_IQ},{659,_IQ},{659,_IQ},{698,_ID8},{523,_I16},
-  // A4,4 F4,-8 C5,16 A4,2
-  {440,_IQ},{349,_ID8},{523,_I16},{440,_IH},
+  // Phrase B — a step higher
+  {784,_Q},{880,_Q},{988,_Q},{880,_Q},   // G5 A5 B5 A5
+  {784,_Q},{659,_Q},{523,_H},            // G5 E5 C5
+  {587,_Q},{659,_Q},{784,_Q},{880,_Q},   // D5 E5 G5 A5
+  {988,_QD},{880,_8},{784,_H},           // B5. A5 G5
 
-  // A5,4 A4,-8 A4,16 A5,4 GS5,-8 G5,16
-  {880,_IQ},{440,_ID8},{440,_I16},{880,_IQ},{830,_ID8},{784,_I16},
-  // DS5,16 D5,16 DS5,8 REST,8 A4,8 DS5,4 D5,-8 CS5,16
-  {622,_I16},{587,_I16},{622,_I8},{0,_I8},{440,_I8},{622,_IQ},{587,_ID8},{554,_I16},
+  // Bridge — peak and fall
+  {1047,_Q},{880,_8},{784,_8},{659,_Q},{523,_Q},  // C6 A5 G5 E5 C5
+  {440,_Q},{494,_Q},{523,_Q},{587,_Q},            // A4 B4 C5 D5
+  {659,_QD},{587,_8},{523,_Q},{440,_Q},           // E5. D5 C5 A4
+  {494,_Q},{440,_8},{0,_8},{0,_H},                // B4 A4 REST
 
-  // C5,16 B4,16 C5,16 REST,8 F4,8 GS4,4 F4,-8 A4,-16
-  {523,_I16},{494,_I16},{523,_I16},{0,_I8},{349,_I8},{415,_IQ},{349,_ID8},{440,_ID16},
-  // C5,4 A4,-8 C5,16 E5,2
-  {523,_IQ},{440,_ID8},{523,_I16},{659,_IH},
-
-  // A5,4 A4,-8 A4,16 A5,4 GS5,-8 G5,16
-  {880,_IQ},{440,_ID8},{440,_I16},{880,_IQ},{830,_ID8},{784,_I16},
-  // DS5,16 D5,16 DS5,8 REST,8 A4,8 DS5,4 D5,-8 CS5,16
-  {622,_I16},{587,_I16},{622,_I8},{0,_I8},{440,_I8},{622,_IQ},{587,_ID8},{554,_I16},
-
-  // C5,16 B4,16 C5,16 REST,8 F4,8 GS4,4 F4,-8 A4,-16
-  {523,_I16},{494,_I16},{523,_I16},{0,_I8},{349,_I8},{415,_IQ},{349,_ID8},{440,_ID16},
-  // A4,4 F4,-8 C5,16 A4,2
-  {440,_IQ},{349,_ID8},{523,_I16},{440,_IH},
-  {0,_IQ},  // rest before loop
+  // Phrase A repeat (leads back to loop start)
+  {659,_Q},{784,_Q},{880,_Q},{784,_Q},
+  {659,_Q},{523,_Q},{440,_H},
+  {523,_Q},{587,_Q},{659,_Q},{784,_Q},
+  {880,_QD},{784,_8},{659,_H},
+  {0,_8},   // rest before loop
 };
-#undef _IQ
-#undef _IDQ
-#undef _I8
-#undef _ID8
-#undef _IH
-#undef _I16
-#undef _ID16
+#undef _Q
+#undef _QD
+#undef _8
+#undef _8D
+#undef _H
 static const int dinoMelodyLen = sizeof(dinoMelody) / sizeof(dinoMelody[0]);
 
 static int      dinoMusicIdx    = 0;
@@ -510,8 +494,8 @@ static void drawDino() {
   tft.print("DINO RUN");
   tft.setTextSize(1);
   tft.setTextColor(COLDIM);
-  tft.setCursor(78, 96);   // "HackConRD 2026" 14*6=84 → 120-42=78
-  tft.print("HackConRD 2026");
+  // tft.setCursor(78, 96);   // "HackConRD 2026" 14*6=84 → 120-42=78
+  // tft.print("HackConRD 2026");
 
   // Idle dino centered on ground line
   dinoDrawRunning(DINO_GROUND_Y - DINO_DINO_H_RUN, 0);
@@ -557,9 +541,9 @@ static void dinoTick(ButtonsEdge b) {
   bool onGround = (dinoSt.dinoY >= DINO_GROUND_Y - DINO_DINO_H_RUN);
 
   // DOWN + BACK held together = exit to games menu (same as HackerMon)
-  if (isPressed(PUSH2PIN) && isPressed(PUSH3PIN)) {
+  if (isPressed(PUSH2PIN) && isPressed(PUSH4PIN)) {
     dinoMusicStop();
-    while (isPressed(PUSH2PIN) || isPressed(PUSH3PIN)) delay(10);
+    while (isPressed(PUSH2PIN) || isPressed(PUSH4PIN)) delay(10);
     goTo(MODE_GAMES_MENU);
     return;
   }

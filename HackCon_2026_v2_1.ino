@@ -39,6 +39,7 @@ enum ScreenMode : uint8_t {
   MODE_DINO,
   MODE_MAZE,
   MODE_HACKMON,
+  MODE_SPACE_INVADERS,
 };
 static ScreenMode mode = MODE_MENU;
 
@@ -1555,7 +1556,7 @@ static void storyFoxIntroShow() {
 
 
 // ======================= QUEST: ALIEN (Hidden Challenge) =======================
-#define QUEST_ALIEN_TRIGGER_FRIENDS  7
+#define QUEST_ALIEN_TRIGGER_FRIENDS  5
 #define QUEST_ALIEN_NEED_MIN         7 
 #define QUEST_ALIEN_NEED_MAX         7 
 
@@ -3777,7 +3778,7 @@ static void screensaverTick() {
   if (bootToSaverActive) return;
 
   // En juegos usamos timeout más largo para no interrumpir partidas activas
-  const bool inGame = (mode == MODE_DINO || mode == MODE_MAZE || mode == MODE_HACKMON);
+  const bool inGame = (mode == MODE_DINO || mode == MODE_MAZE || mode == MODE_HACKMON || mode == MODE_SPACE_INVADERS);
   // const uint32_t IDLE_SAVER_MS = 30UL * 1000UL;  // 30s (DEV)
   const uint32_t IDLE_SAVER_MS = inGame
     ? 5UL * 60UL * 1000UL   // 5 min mientras se juega
@@ -3858,8 +3859,8 @@ static void drawFriendsMenu() {
 
 // ======================= GAMES MENU =======================
 static uint8_t gamesMenuIndex = 0;
-static const char* GAMES_MENU_ITEMS[] = { "Dino Run", "Maze", "HackerMon" };
-static const uint8_t GAMES_MENU_COUNT = 3;
+static const char* GAMES_MENU_ITEMS[] = { "Dino Run", "Doom Maze", "HackerMon", "Star Invaders" };
+static const uint8_t GAMES_MENU_COUNT = 4;
 
 static void drawGamesMenu() {
   busForTFT();
@@ -4690,6 +4691,7 @@ static void updateFoxHuntBar() {
 #include "games/Dino.h"
 #include "games/Maze.h"
 #include "games/HackerMon.h"
+#include "games/SpaceInvaders.h"
 
 // ======================= UI control =======================
 static void goTo(ScreenMode m, bool skipIntro) {
@@ -4697,9 +4699,10 @@ static void goTo(ScreenMode m, bool skipIntro) {
   const bool prevRf = rfWantedForMode(prevMode);
 
   // Stop game audio when leaving a game mode
-  if (prevMode == MODE_DINO)    { dinoMusicStop();    buzzerNoTone(); }
-  if (prevMode == MODE_MAZE)    { gameMusicStop();    buzzerNoTone(); }
-  if (prevMode == MODE_HACKMON) { pkmMusicStop();     buzzerNoTone(); }
+  if (prevMode == MODE_DINO)           { dinoMusicStop();  buzzerNoTone(); }
+  if (prevMode == MODE_MAZE)           { gameMusicStop();  buzzerNoTone(); }
+  if (prevMode == MODE_HACKMON)        { pkmMusicStop();   buzzerNoTone(); }
+  if (prevMode == MODE_SPACE_INVADERS) { siMusicStop();    buzzerNoTone(); }
 
   // Change mode first (UI uses this)
   mode = m;
@@ -4809,6 +4812,16 @@ static void goTo(ScreenMode m, bool skipIntro) {
       else                 { gameRenderFrame(); gameDrawHUD(); gameMusicStart(); }
     } else {
       drawGame();
+    }
+
+  } else if (mode == MODE_SPACE_INVADERS) {
+    lastActivityMs = millis();
+    if (skipIntro) {
+      if      (siTitleScreen)   drawSpaceInvaders();
+      else if (siGameOver) siDrawResult();
+      else                      { siRedrawAll(); siMusicStart(); }
+    } else {
+      drawSpaceInvaders();
     }
 
   } else if (mode == MODE_HACKMON) {
@@ -6271,6 +6284,7 @@ void loop() {
       if (gamesMenuIndex == 0) goTo(MODE_DINO);
       else if (gamesMenuIndex == 1) goTo(MODE_MAZE);
       else if (gamesMenuIndex == 2) goTo(MODE_HACKMON);
+      else if (gamesMenuIndex == 3) goTo(MODE_SPACE_INVADERS);
     }
     if (b.back) goTo(MODE_MENU);
     powerLedsTick();
@@ -6303,6 +6317,16 @@ void loop() {
   if (mode == MODE_HACKMON) {
     pkmMusicTick();
     hackerMonTick(b);
+    powerLedsTick();
+    ledTick();
+    delay(1);
+    return;
+  }
+
+  // ===== Space Invaders =====
+  if (mode == MODE_SPACE_INVADERS) {
+    siMusicTick();
+    spaceInvadersTick(b);
     powerLedsTick();
     ledTick();
     delay(1);

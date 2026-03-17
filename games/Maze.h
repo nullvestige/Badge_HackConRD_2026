@@ -11,89 +11,41 @@
 
 struct GameNote { uint16_t freq; uint16_t dur; };
 
-// Doom E1M1 "At Doom's Gate" - converted from hibit-dev/buzzer
-// Format: {freq_hz, dur_ms}, freq=0 is a rest/pause between notes
-// Duration 8 => 125ms note + 38ms pause; Duration 16 => 62ms note + 19ms pause
-// Duration 2 => 500ms note + 150ms pause
-// Macro Hz values: E2=82 D3=147 C3=131 AS2=117 B2=123
-//   E3=165 B3=247 G3=196 A3=220 FS3=185 D3=147
-//   A2=110 G3=196 F3=175 DS3=156
-//   CS3=139 B3=247 A3=220 GS3=208 F3=175
-//   FS3=185 DS3=156 G3=196 E4=330 B4=494 G4=392
-//   A3=220 D4=294 C4=262 F4=349
-//   E4=330 G4=392 B3=247 D4=294
-//   DS4=311
-#define N8  125  // eighth note ms
-#define P8   38  // eighth pause ms
-#define N16  62  // sixteenth note ms
-#define P16  19  // sixteenth pause ms
-#define N2  500  // half note ms
-#define P2  150  // half pause ms
-
-// Helper macros for note+pause pairs
-#define E8(f)  {f,N8},{0,P8}
-#define E16(f) {f,N16},{0,P16}
-#define E2(f)  {f,N2},{0,P2}
+// Epic Dungeon Theme — original composition for HackConRD 2026 badge
+// Dramatic cinematic melody in E minor — powerful, intense, action-RPG boss feel
+// Tempo ~150 BPM  Q=400ms  E=200ms  S=100ms  DQ=600ms  H=800ms
+// E4=330 F#4=370 G4=392 A4=440 B4=494 C5=523 D5=587 E5=659 F#5=740 G5=784 A5=880 B5=988
+#define _Q   400   // quarter
+#define _E   200   // eighth
+#define _S   100   // sixteenth
+#define _DQ  600   // dotted quarter
+#define _H   800   // half
 
 static const GameNote gameMelody[] PROGMEM = {
-  // Section 1: E2 riff x3 + resolve
-  E8(82),E8(82),E8(165),E8(82),E8(82),E8(147),E8(82),E8(82),
-  E8(131),E8(82),E8(82),E8(117),E8(82),E8(82),E8(123),E8(131),
-  E8(82),E8(82),E8(165),E8(82),E8(82),E8(147),E8(82),E8(82),
-  E8(131),E8(82),E8(82),E2(117),
+  // --- Section A: main epic theme — power chords implied, octave jumps ---
+  {330,_E},{494,_E},{659,_Q},{587,_E},{494,_E},                    // E4 B4 E5 D5 B4
+  {392,_E},{587,_E},{784,_Q},{740,_E},{587,_E},                    // G4 D5 G5 F#5 D5
+  {659,_E},{587,_E},{494,_E},{392,_E},{440,_E},{494,_E},{523,_E},{587,_E}, // E5 D5 B4 G4 A4 B4 C5 D5
+  {659,_H},{0,_Q},                                                  // E5 rest
 
-  // Section 2: E2 riff again
-  E8(82),E8(82),E8(165),E8(82),E8(82),E8(147),E8(82),E8(82),
-  E8(131),E8(82),E8(82),E8(117),E8(82),E8(82),E8(123),E8(131),
-  E8(82),E8(82),E8(165),E8(82),E8(82),E8(147),E8(82),E8(82),
-  E8(131),E8(82),E8(82),E2(117),
+  // --- Section B: relentless driving run, descend then climb ---
+  {659,_S},{587,_S},{523,_S},{494,_S},{440,_S},{392,_S},{370,_S},{330,_S}, // E5→E4 fast descent
+  {392,_E},{440,_E},{494,_E},{523,_E},{587,_E},{659,_DQ},{0,_E},   // G4 climb to E5
+  {740,_E},{659,_E},{587,_E},{523,_E},{494,_DQ},{440,_E},          // F#5 E5 D5 C5 B4. A4
+  {392,_H},{0,_Q},                                                  // G4 rest
 
-  // Section 3: E2 riff + FS3 run
-  E8(82),E8(82),E8(165),E8(82),E8(82),E8(147),E8(82),E8(82),
-  E8(131),E8(82),E8(82),E8(117),E8(82),E8(82),E8(123),E8(131),
-  E8(82),E8(82),E8(165),E8(82),E8(82),E8(147),E8(82),E8(82),
-  E16(185),E16(147),E16(123),E16(220),E16(185),E16(123),E16(147),E16(185),E16(220),E16(185),E16(147),E16(123),
-
-  // Section 4: E2 riff + B3 run
-  E8(82),E8(82),E8(165),E8(82),E8(82),E8(147),E8(82),E8(82),
-  E8(131),E8(82),E8(82),E8(117),E8(82),E8(82),E8(123),E8(131),
-  E8(82),E8(82),E8(165),E8(82),E8(82),E8(147),E8(82),E8(82),
-  E16(247),E16(196),E16(165),E16(196),E16(247),E16(330),E16(196),E16(247),E16(330),E16(247),E16(392),E16(494),
-
-  // Section 5: A2 riff
-  E8(110),E8(110),E8(220),E8(110),E8(110),E8(196),E8(110),E8(110),
-  E8(175),E8(110),E8(110),E8(156),E8(110),E8(110),E8(165),E8(175),
-  E8(110),E8(110),E8(220),E8(110),E8(110),E8(196),E8(110),E8(110),
-  E8(175),E8(110),E8(110),E2(156),
-
-  // Section 6: A2 riff + A3 run
-  E8(110),E8(110),E8(220),E8(110),E8(110),E8(196),E8(110),E8(110),
-  E8(175),E8(110),E8(110),E8(156),E8(110),E8(110),E8(165),E8(175),
-  E8(110),E8(110),E8(220),E8(110),E8(110),E8(196),E8(110),E8(110),
-  E16(220),E16(175),E16(147),E16(220),E16(175),E16(147),E16(262),E16(220),E16(175),E16(220),E16(175),E16(147),
-
-  // Section 7: CS3 variation
-  E8(139),E8(139),E8(277),E8(139),E8(139),E8(247),E8(139),E8(139),
-  E8(220),E8(139),E8(139),E8(196),E8(139),E8(139),E8(208),E8(220),
-  E8(123),E8(123),E8(247),E8(123),E8(123),E8(220),E8(123),E8(123),
-  E8(196),E8(123),E8(123),E2(175),
-
-  // Section 8: E2 riff final
-  E8(82),E8(82),E8(165),E8(82),E8(82),E8(147),E8(82),E8(82),
-  E8(131),E8(82),E8(82),E8(117),E8(82),E8(82),E8(123),E8(131),
-  E8(82),E8(82),E8(165),E8(82),E8(82),E8(147),E8(82),E8(82),
-  E16(247),E16(196),E16(165),E16(196),E16(247),E16(330),E16(196),E16(247),E16(330),E16(247),E16(392),E16(494),
+  // --- Section C: climax — arpeggio burst to B5, then dramatic resolve ---
+  {494,_S},{659,_S},{784,_S},{988,_S},{880,_E},{784,_E},{740,_E},{659,_E}, // B4→B5 burst, fall
+  {587,_E},{659,_E},{740,_E},{784,_DQ},{740,_E},                   // D5 E5 F#5 G5. F#5
+  {659,_E},{587,_E},{523,_E},{494,_E},{440,_E},{392,_E},{370,_E},{330,_E}, // E5 D5 C5 B4 A4 G4 F#4 E4
+  {659,_Q},{494,_Q},{330,_Q},{0,_Q},                               // E5 B4 E4 big resolve
 };
 
-#undef N8
-#undef P8
-#undef N16
-#undef P16
-#undef N2
-#undef P2
-#undef E8
-#undef E16
-#undef E2
+#undef _Q
+#undef _E
+#undef _S
+#undef _DQ
+#undef _H
 static const int gameMelodyLen = sizeof(gameMelody) / sizeof(gameMelody[0]);
 
 static int      gameMusicIdx    = 0;
@@ -171,8 +123,10 @@ static float gcX, gcY; // camera plane
 
 // 2px-wide column strip; each entry is one RGB565 pixel
 static uint16_t gameColBuf[GAME_H * 2];
+static float    gameZBuf[GAME_W / 2];                // perpDist per half-res column (for sprite occlusion)
 static bool     gameMoved = true;                    // dirty flag - redraw minimap
 static uint16_t gameMinimapBuf[MAP_W * 3 * MAP_H * 3]; // 36x36
+static uint8_t  gameRotFrames = 0;                   // rotation frame counter for renormalization
 
 // ---- Helpers ------------------------------------------------------------
 
@@ -288,6 +242,7 @@ static void gameRenderFrame() {
 
     float perpDist = side ? (sdY - ddY) : (sdX - ddX);
     if (perpDist < 0.1f) perpDist = 0.1f;
+    gameZBuf[col] = perpDist;
 
     int lineH     = (int)(GAME_H / perpDist);
     int drawStart = -lineH / 2 + GAME_H / 2;
@@ -344,11 +299,17 @@ static void gameRenderFrame() {
     int sprH = (int)(GAME_H / ty);
     if (sprH > 60) sprH = 60;
     if (sprH < 3)  continue;
-    int cx = sprScreenX;
-    int cy = GAME_H / 2;
-    int r  = sprH / 4;
+    int r = sprH / 4;
     if (r < 2)  r = 2;
     if (r > 10) r = 10;
+    // Z-buffer occlusion: check left, center, and right columns of sprite
+    int sprColC = sprScreenX / 2;
+    int sprColL = max(0, (sprScreenX - r) / 2);
+    int sprColR = min(GAME_W / 2 - 1, (sprScreenX + r) / 2);
+    if (sprColC < 0 || sprColC >= GAME_W / 2) continue;
+    if (ty >= gameZBuf[sprColC] || ty >= gameZBuf[sprColL] || ty >= gameZBuf[sprColR]) continue;
+    int cx = sprScreenX;
+    int cy = GAME_H / 2;
     if (cx-r >= 0 && cx+r < GAME_W && cy-r >= 0 && cy+r < GAME_H) {
       tft.fillCircle(cx, cy, r, 0xFFE0);
       tft.drawCircle(cx, cy, r, 0xFDA0);
@@ -467,11 +428,13 @@ static void gameInit() {
   gcX = 0.0f; gcY = 0.66f;
   gamePaused   = false;
   gamePauseIdx = 0;
-  gameWon       = false;
-  gameCollected = 0;
+  gameWon        = false;
+  gameCollected  = 0;
+  gameMoved      = true;
+  gameRotFrames  = 0;
 
   const float gemPos[][2] = {
-    {3.5f, 3.5f}, {5.5f, 7.5f}, {9.5f, 1.5f}, {1.5f, 9.5f}, {9.5f, 9.5f}
+    {1.5f, 3.5f}, {10.5f, 1.5f}, {6.5f, 5.5f}, {1.5f, 9.5f}, {10.5f, 9.5f}
   };
   gameTotalGems = GAME_MAX_GEMS;
   for (uint8_t i = 0; i < gameTotalGems; i++) {
@@ -509,34 +472,18 @@ static void gameTick(ButtonsEdge &b) {
   }
 
   // ---- Combo: DOWN + BACK → exit to games menu (same as HackerMon) -------
-  if (isPressed(PUSH2PIN) && isPressed(PUSH3PIN)) {
+  if (isPressed(PUSH2PIN) && isPressed(PUSH4PIN)) {
     gameMusicStop();
-    while (isPressed(PUSH2PIN) || isPressed(PUSH3PIN)) delay(10);
+    while (isPressed(PUSH2PIN) || isPressed(PUSH4PIN)) delay(10);
     goTo(MODE_GAMES_MENU);
     return;
   }
 
-  // ---- Combo: UP + BACK → interact ---------------------------------------
-  if (isPressed(PUSH1PIN) && isPressed(PUSH3PIN)) {
-    // Placeholder: flash "INTERACT" hint — future use for doors/NPCs
-    busForTFT();
-    tft.setTextSize(1);
-    tft.setTextColor(COLNEON);
-    tft.setCursor(80, 228);
-    tft.print("INTERACT");
-    beep(8);
-    uint32_t t0 = millis();
-    while (millis() - t0 < 400 && (isPressed(PUSH1PIN) || isPressed(PUSH3PIN))) delay(10);
-    // Redraw HUD to clear the hint
-    gameDrawHUD();
-    return;
-  }
 
   bool moved = false;
   const float moveSpd = 0.12f;
   static const float rotC = 0.9968f; // cos(0.08 rad)
   static const float rotS = 0.0799f; // sin(0.08 rad)
-  static uint8_t rotFrames = 0;
 
   if (isPressed(PUSH1PIN)) { // UP = forward
     float nx = gpX + gdX * moveSpd;
@@ -565,11 +512,11 @@ static void gameTick(ButtonsEdge &b) {
     moved = true;
   }
 
-  // Renormalize direction vector every 60 rotation frames to prevent float drift
-  if (moved && ++rotFrames >= 60) {
-    rotFrames = 0;
+  // Renormalize direction + camera plane every 60 frames to prevent float drift
+  if (moved && ++gameRotFrames >= 60) {
+    gameRotFrames = 0;
     float m = sqrtf(gdX * gdX + gdY * gdY);
-    if (m > 0.0f) { gdX /= m; gdY /= m; }
+    if (m > 0.0f) { gdX /= m; gdY /= m; gcX /= m; gcY /= m; }
   }
 
   gameMoved = moved;
@@ -592,8 +539,9 @@ static void gameTick(ButtonsEdge &b) {
     for (int dy = -1; dy <= 1; dy++) {
       for (int dx = -1; dx <= 1; dx++) {
         if (gameMapAt(mx + dx, my + dy) == 2) {
-          float dist = fabsf(gpX - (mx + dx + 0.5f)) + fabsf(gpY - (my + dy + 0.5f));
-          if (dist < 1.2f) {
+          float edx = gpX - (mx + dx + 0.5f);
+          float edy = gpY - (my + dy + 0.5f);
+          if (edx * edx + edy * edy < 1.44f) {
             gameWon = true;
             beep(80);
             gameDrawWinScreen();
