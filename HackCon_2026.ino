@@ -908,6 +908,27 @@ static const uint8_t saverBits_zenitsu[] PROGMEM = {
 static const uint8_t saverBits_levi[] PROGMEM = {
 #include "img/levi_saver.h"
 };
+static const uint8_t saverBits_nanami[] PROGMEM = {
+#include "img/nanami_saver.h"
+};
+static const uint8_t saverBits_homer[] PROGMEM = {
+#include "img/homer_saver.h"
+};
+static const uint8_t saverBits_kali[] PROGMEM = {
+#include "img/kali_saver.h"
+};
+static const uint8_t saverBits_arch[] PROGMEM = {
+#include "img/arch_saver.h"
+};
+static const uint8_t saverBits_parrot[] PROGMEM = {
+#include "img/parrot_saver.h"
+};
+static const uint8_t saverBits_hacker[] PROGMEM = {
+#include "img/hacker_saver.h"
+};
+static const uint8_t saverBits_matrix[] PROGMEM = {
+#include "img/matrix_saver.h"
+};
 
 struct SaverDef {
   const char*    name;
@@ -932,6 +953,13 @@ static const SaverDef SAVERS[] = {
   { "Inosuke",     saverBits_inosuke,    false, false },
   { "Zenitsu",     saverBits_zenitsu,    false, false },
   { "Levi",        saverBits_levi,       false, false },
+  { "Nanami",      saverBits_nanami,     false, false },
+  { "Homer",       saverBits_homer,      false, false },
+  { "Kali",        saverBits_kali,       false, false },
+  { "Arch",        saverBits_arch,       false, false },
+  { "Parrot",      saverBits_parrot,     false, false },
+  { "Hacker",      saverBits_hacker,     false, false },
+  { "Matrix",      saverBits_matrix,     false, false },
 };
 
 static const uint8_t SAVER_COUNT = sizeof(SAVERS) / sizeof(SAVERS[0]);
@@ -1018,7 +1046,7 @@ static void bootSequence() {
   tft.setTextColor(COLNEON);
   tft.setCursor(10, 42);
   tft.print("Initializing RF...");
-  delay(260);
+  delay(150);
 }
 
 static void foxHuntPollLiveRssi() {
