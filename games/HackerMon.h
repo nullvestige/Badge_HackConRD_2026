@@ -279,6 +279,7 @@ static const PkmMove pkmMoves[PKM_MOVES] = {
 };
 
 // ==================== GAME STATE ====================
+#define PKM_SCREEN_TITLE      4  // intro/title screen (shown on first entry)
 #define PKM_SCREEN_OVERWORLD  0
 #define PKM_SCREEN_BATTLE     1
 #define PKM_SCREEN_RESULT     2
@@ -301,6 +302,11 @@ static uint32_t pkmWalkAnimMs;
 static uint32_t pkmLastMoveMs;
 static bool     pkmGameOver;
 static bool     pkmGameWon;
+
+// Survival time + rank
+static uint32_t pkmStartMs;        // millis() when game started (overworld entry)
+static uint32_t pkmSurvivedSecs;   // calculated at game end
+static uint8_t  pkmBestRank;       // 0-5, persisted in flash
 
 // Camera
 static int16_t  pkmCamX, pkmCamY;
@@ -334,6 +340,50 @@ static uint8_t pkmXPtoLevel(uint16_t xp) {
   for (int8_t lv=9; lv>=1; lv--)
     if (xp >= pgm_read_word(&pkmXPTable[lv])) return (uint8_t)(lv+1);
   return 1;
+}
+
+// ==================== RANK SYSTEM ====================
+// Rank based on survival time (seconds)
+static uint8_t pkmXPToRank(uint16_t xp) {
+  if (xp <  50) return 0;  // SCRIPT KIDDIE
+  if (xp < 150) return 1;  // NOOB HACKER
+  if (xp < 300) return 2;  // GREY HAT
+  if (xp < 500) return 3;  // BLACK HAT
+  if (xp < 720) return 4;  // ELITE HACKER
+  return 5;                 // LEGENDARY (max XP, lv10)
+}
+static const char* pkmRankName(uint8_t rank) {
+  switch(rank) {
+    case 0: return "SCRIPT KIDDIE";
+    case 1: return "NOOB HACKER";
+    case 2: return "GREY HAT";
+    case 3: return "BLACK HAT";
+    case 4: return "ELITE HACKER";
+    default: return "LEGENDARY";
+  }
+}
+static uint16_t pkmRankColor(uint8_t rank) {
+  switch(rank) {
+    case 0: return 0x8410;  // grey
+    case 1: return 0x07FF;  // cyan
+    case 2: return 0xFFE0;  // yellow
+    case 3: return 0xF800;  // red
+    case 4: return 0xFD20;  // orange
+    default: return 0xF81F; // magenta — legendary
+  }
+}
+static void pkmLoadBestRank() {
+  prefs.begin("hackcon", true);
+  pkmBestRank = (uint8_t)prefs.getUInt("pkm_rank", 0);
+  prefs.end();
+}
+static void pkmSaveBestRank(uint8_t rank) {
+  if (rank > pkmBestRank) {
+    pkmBestRank = rank;
+    prefs.begin("hackcon", false);
+    prefs.putUInt("pkm_rank", pkmBestRank);
+    prefs.end();
+  }
 }
 
 static uint8_t pkmLevelToMaxHP(uint8_t lv) {
@@ -1185,38 +1235,122 @@ static void pkmDrawTerminal() {
 }
 
 // ==================== WIN / GAME OVER SCREEN ====================
+// ==================== TITLE SCREEN ====================
+static void pkmDrawTitle() {
+  busForTFT();
+  tft.fillScreen(0x0000);
+
+  // Background scanlines
+  for (int y = 0; y < 240; y += 6) tft.drawFastHLine(0, y, 240, 0x0820);
+
+  // Title box
+  tft.fillRect(10, 18, 220, 58, 0x0000);
+  tft.drawRect(10, 18, 220, 58, COLNEON);
+  tft.drawRect(12, 20, 216, 54, 0x0440);
+
+  // Title text "HACKER MON"  — textSize=2 → 12px/char, 10 chars = 120px → x=(240-120)/2=60
+  tft.setTextSize(2);
+  tft.setTextColor(COLNEON);
+  tft.setCursor(60, 30);
+  tft.print("HACKER MON");
+
+  // Subtitle: ">> Pwn the Net <<" 17 chars × 6 = 102px → x = 120 - 51 = 69
+  tft.setTextSize(1);
+  tft.setTextColor(0x07FF);
+  tft.setCursor(69, 58);
+  tft.print(">> Pwn the Net <<");
+
+  // Best rank box
+  tft.fillRect(20, 96, 200, 68, 0x0000);
+  tft.drawRect(20, 96, 200, 68, 0x4208);
+
+  // "Best Rank:" 10 chars × 6 = 60px → x = 120 - 30 = 90
+  tft.setTextSize(1);
+  tft.setTextColor(0x8410);
+  tft.setCursor(90, 104);
+  tft.print("Best Rank:");
+
+  // Rank name — dynamic centering: nChars × 12px / 2
+  const char* rname = pkmRankName(pkmBestRank);
+  uint16_t    rcol  = pkmRankColor(pkmBestRank);
+  tft.setTextSize(2);
+  tft.setTextColor(rcol);
+  tft.setCursor(120 - (int)(strlen(rname) * 12) / 2, 116);
+  tft.print(rname);
+
+  // Rank bar: 6 × 14px = 84px → x = 120 - 42 = 78
+  int dotX = 78;
+  for (uint8_t i = 0; i < 6; i++) {
+    uint16_t c = (i <= pkmBestRank) ? pkmRankColor(i) : (uint16_t)0x2104;
+    tft.fillRect(dotX + i*14, 146, 10, 6, c);
+  }
+
+  // "Press OK to play" 16 chars × 6 = 96px → x = 120 - 48 = 72
+  tft.setTextSize(1);
+  tft.setTextColor(COLDIM);
+  tft.setCursor(72, 182);
+  tft.print("Press OK to play");
+
+  // "BACK = main menu" 16 chars × 6 = 96px → x = 120 - 48 = 72
+  tft.setTextColor(0x4208);
+  tft.setCursor(72, 196);
+  tft.print("BACK = main menu");
+}
+
+// ==================== RESULT SCREEN ====================
 static void pkmDrawResult(bool won) {
   busForTFT();
-  tft.fillRect(20, 70, 200, 100, 0x0000);
-  tft.drawRect(20, 70, 200, 100, won ? (uint16_t)COLNEON : (uint16_t)0xF800);
-  tft.drawRect(22, 72, 196,  96, won ? (uint16_t)COLDIM  : (uint16_t)0xA000);
+  // Expanded box: y=62, height=122 → bottom at y=184
+  tft.fillRect(16, 62, 208, 122, 0x0000);
+  tft.drawRect(16, 62, 208, 122, won ? (uint16_t)COLNEON : (uint16_t)0xF800);
+  tft.drawRect(18, 64, 204, 118, won ? (uint16_t)COLDIM  : (uint16_t)0xA000);
 
-  // Box center X = 20 + 200/2 = 120. textSize=2: 12px/char. textSize=1: 6px/char.
+  // PWNED! / GAME OVER  textSize=2 → 12px/char
   tft.setTextSize(2);
   tft.setTextColor(won ? (uint16_t)COLNEON : (uint16_t)0xF800);
-  if (won) { tft.setCursor(84, 82); tft.print("PWNED!"); }    //  6*12=72  → 120-36=84
-  else     { tft.setCursor(66, 82); tft.print("GAME OVER"); } //  9*12=108 → 120-54=66
+  if (won) { tft.setCursor(84, 72); tft.print("PWNED!"); }    //  6*12=72  → 120-36=84
+  else     { tft.setCursor(66, 72); tft.print("GAME OVER"); } //  9*12=108 → 120-54=66
+
+  // Rank achieved
+  uint8_t rank = pkmXPToRank(pkmXP);
+  tft.setTextSize(1);
+  tft.setTextColor(pkmRankColor(rank));
+  const char* rname = pkmRankName(rank);
+  tft.setCursor(120 - (int)(strlen(rname)*6)/2, 96);
+  tft.print(rname);
 
   tft.setTextSize(1);
   tft.setTextColor(0xBDF7);
 
+  // Survived time
+  uint32_t mm = pkmSurvivedSecs / 60;
+  uint32_t ss = pkmSurvivedSecs % 60;
   char rbuf[32];
-  snprintf(rbuf, sizeof(rbuf), "Level: %d", pkmLevel);
-  tft.setCursor(120 - (int)(strlen(rbuf) * 6) / 2, 106);
+  snprintf(rbuf, sizeof(rbuf), "Time: %lum %02lus", mm, ss);
+  tft.setCursor(120 - (int)(strlen(rbuf)*6)/2, 110);
   tft.print(rbuf);
 
-  snprintf(rbuf, sizeof(rbuf), "XP: %d", pkmXP);
-  tft.setCursor(120 - (int)(strlen(rbuf) * 6) / 2, 118);
+  // Level + XP on same line
+  snprintf(rbuf, sizeof(rbuf), "LV:%d  XP:%d", pkmLevel, pkmXP);
+  tft.setCursor(120 - (int)(strlen(rbuf)*6)/2, 122);
   tft.print(rbuf);
 
+  // Defeated count
   uint8_t dc=0;
   for(int i=0;i<PKM_MAX_ENEMIES;i++) if(pkmDefeatedMask>>i&1) dc++;
   snprintf(rbuf, sizeof(rbuf), "Defeated: %d/%d", dc, PKM_MAX_ENEMIES);
-  tft.setCursor(120 - (int)(strlen(rbuf) * 6) / 2, 130);
+  tft.setCursor(120 - (int)(strlen(rbuf)*6)/2, 134);
   tft.print(rbuf);
 
+  // New best rank indicator — shown if this run's rank equals the saved best
+  if (rank >= pkmBestRank) {
+    tft.setTextColor(0xFFE0);
+    tft.setCursor(120 - (int)(6*9)/2, 148);
+    tft.print("NEW BEST!");
+  }
+
   tft.setTextColor(COLDIM);
-  tft.setCursor(63, 152);   // "OK=retry  BACK=menu" 19*6=114 → 120-57=63
+  tft.setCursor(63, 166);
   tft.print("OK=retry  BACK=menu");
 }
 
@@ -1260,6 +1394,8 @@ static void pkmInit() {
   pkmGameOver    = false;
   pkmGameWon     = false;
   pkmDefeatedMask = 0;
+  pkmSurvivedSecs = 0;
+  pkmStartMs     = millis();  // start survival timer
   pkmScreen      = PKM_SCREEN_OVERWORLD;
   pkmBattlePhase = 0;
   pkmBattleCursor = 0;
@@ -1268,8 +1404,9 @@ static void pkmInit() {
 }
 
 static void drawHackerMon() {
-  pkmInit();
-  pkmDrawOverworld();
+  pkmLoadBestRank();
+  pkmScreen = PKM_SCREEN_TITLE;
+  pkmDrawTitle();
 }
 
 // ==================== BATTLE LOGIC ====================
@@ -1500,12 +1637,16 @@ static void pkmBattleTick(const ButtonsEdge& b) {
     if (b.ok || b.back) {
       pkmMusicStop();
       if (pkmGameOver) {
+        pkmSurvivedSecs = (millis() - pkmStartMs) / 1000;
+        pkmSaveBestRank(pkmXPToRank(pkmXP));
         pkmResultWon = false;
         pkmDrawResult(false);
         pkmScreen = PKM_SCREEN_RESULT;
         return;
       }
       if (pkmGameWon) {
+        pkmSurvivedSecs = (millis() - pkmStartMs) / 1000;
+        pkmSaveBestRank(pkmXPToRank(pkmXP));
         pkmResultWon = true;
         pkmDrawResult(true);
         pkmScreen = PKM_SCREEN_RESULT;
@@ -1684,11 +1825,25 @@ static void hackerMonTick(const ButtonsEdge& b) {
     return;
   }
 
-  if (pkmScreen == PKM_SCREEN_RESULT) {
+  if (pkmScreen == PKM_SCREEN_TITLE) {
     if (b.ok) {
-      // Restart
       pkmInit();
       pkmDrawOverworld();
+      return;
+    }
+    if (b.back) {
+      goTo(MODE_GAMES_MENU);
+      return;
+    }
+    return;
+  }
+
+  if (pkmScreen == PKM_SCREEN_RESULT) {
+    if (b.ok) {
+      // Back to title screen (shows updated best rank)
+      pkmLoadBestRank();
+      pkmScreen = PKM_SCREEN_TITLE;
+      pkmDrawTitle();
       return;
     }
     if (b.back) {

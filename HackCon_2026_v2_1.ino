@@ -866,8 +866,8 @@ static void uiSmallStatusRX() {
 // Para agregar un nuevo saver: incluir el .h, declarar el array y
 // añadir una entrada en SAVERS[]. Nada más.
 
-static const uint8_t saverBits_itachi[] PROGMEM = {
-#include "img/itachi_saver.h"
+static const uint8_t saverBits_nolimit[] PROGMEM = {
+#include "img/nolimit_saver.h"
 };
 static const uint8_t saverBits_id[] PROGMEM = {
 #include "img/id_saver.h"
@@ -884,7 +884,30 @@ static const uint8_t saverBits_bulbasaur[] PROGMEM = {
 static const uint8_t saverBits_boot_sp[] PROGMEM = {
 #include "img/boot_sp.h"
 };
-
+static const uint8_t saverBits_bender[] PROGMEM = {
+#include "img/bender_saver.h"
+};
+static const uint8_t saverBits_hackerman[] PROGMEM = {
+#include "img/hackerman_saver.h"
+};
+static const uint8_t saverBits_imin[] PROGMEM = {
+#include "img/imin_saver.h"
+};
+static const uint8_t saverBits_zoro[] PROGMEM = {
+#include "img/zoro_saver.h"
+};
+static const uint8_t saverBits_gojo[] PROGMEM = {
+#include "img/gojo_saver.h"
+};
+static const uint8_t saverBits_inosuke[] PROGMEM = {
+#include "img/inosuke_saver.h"
+};
+static const uint8_t saverBits_zenitsu[] PROGMEM = {
+#include "img/zenitsu_saver.h"
+};
+static const uint8_t saverBits_levi[] PROGMEM = {
+#include "img/levi_saver.h"
+};
 
 struct SaverDef {
   const char*    name;
@@ -895,12 +918,20 @@ struct SaverDef {
 
 static const SaverDef SAVERS[] = {
   // name         bits                  overlay  mono
-  { "Itachi",     saverBits_itachi,     false, false },
+  { "No Limit",   saverBits_nolimit,    false, false },
   { "ID Card",    saverBits_id,         true,  true  },
   { "Nika",       saverBits_nika,       false, false },
   { "RickMorty",  saverBits_rickmorty,      false, false },
   { "Bulbasaur",  saverBits_bulbasaur,  false, false },
   { "Sponsors",   saverBits_boot_sp,    false, false },
+  { "Bender",     saverBits_bender,     false, false },
+  { "Hackerman",  saverBits_hackerman,  false, false },
+  { "Im In",       saverBits_imin,       false, false },
+  { "Zoro",        saverBits_zoro,       false, false },
+  { "Gojo",        saverBits_gojo,       false, false },
+  { "Inosuke",     saverBits_inosuke,    false, false },
+  { "Zenitsu",     saverBits_zenitsu,    false, false },
+  { "Levi",        saverBits_levi,       false, false },
 };
 
 static const uint8_t SAVER_COUNT = sizeof(SAVERS) / sizeof(SAVERS[0]);
@@ -953,10 +984,7 @@ static void drawBootLogoCentered() {
 }
 
 // ===== Boot splash (Color, 240x240) =====
-static const uint8_t bootSplashColor[] PROGMEM = {
-#include "img/boot_sp.h"
-};
-
+// Uses saverBits_boot_sp directly — no duplicate array, saves ~115 KB of flash
 static void drawBootSplash() {
   busForTFT();
   uint16_t lineBuf[240];
@@ -965,8 +993,8 @@ static void drawBootSplash() {
   for (int i = 0; i < 240; i++) {
     for (int j = 0; j < 240; j++) {
       int idx = (i * 240 + j) * 2;
-      uint8_t hi = pgm_read_byte(&bootSplashColor[idx]);
-      uint8_t lo = pgm_read_byte(&bootSplashColor[idx + 1]);
+      uint8_t hi = pgm_read_byte(&saverBits_boot_sp[idx]);
+      uint8_t lo = pgm_read_byte(&saverBits_boot_sp[idx + 1]);
       lineBuf[j] = (hi << 8) | lo;
     }
     tft.writePixels(lineBuf, 240);
@@ -4829,6 +4857,7 @@ static void goTo(ScreenMode m, bool skipIntro) {
     if (skipIntro) {
       // Volver del screensaver: redibujar la pantalla correcta sin reiniciar
       switch (pkmScreen) {
+        case PKM_SCREEN_TITLE:     pkmDrawTitle(); break;
         case PKM_SCREEN_OVERWORLD: pkmDrawOverworld(); pkmMusicStart(0); break;
         case PKM_SCREEN_BATTLE:    pkmBattleDrawFull(); pkmMusicStart(1); break;
         case PKM_SCREEN_TERMINAL:  pkmDrawTerminal(); break;
