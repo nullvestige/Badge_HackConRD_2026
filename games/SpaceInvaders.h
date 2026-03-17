@@ -98,7 +98,7 @@ static void siSfxTick() {
 #define SI_PLAYER_Y  218    // player Y position
 #define SI_PLAYER_W   20    // player width
 #define SI_PLAYER_H    9    // player height
-#define SI_PLAYER_SPD      1    // pixels per move
+#define SI_PLAYER_SPD      2    // pixels per move
 #define SI_PLAYER_MOVE_MS 18    // ms between each move step
 #define SI_PBUL_MS        18    // ms between player bullet steps
 #define SI_ABULLET_MS     25    // ms between alien bullet steps
@@ -262,6 +262,7 @@ static void siNextWave() {
   siAnimFrame = 0;
   siMoveNextMs  = millis() + SI_WAVE_PAUSE_MS + 500;
   siShootNextMs = millis() + SI_WAVE_PAUSE_MS + 2000;
+  siShootCdMs   = millis() + SI_WAVE_PAUSE_MS + 500;  // block player shooting until 300ms after banner ends
   // Show wave clear banner (music keeps playing)
   busForTFT();
   siRedrawAll();

@@ -53,18 +53,21 @@ static const DinoNote dinoMelody[] PROGMEM = {
 #undef _H
 static const int dinoMelodyLen = sizeof(dinoMelody) / sizeof(dinoMelody[0]);
 
-static int      dinoMusicIdx    = 0;
-static uint32_t dinoMusicNextMs = 0;
+static int      dinoMusicIdx     = 0;
+static uint32_t dinoMusicNextMs  = 0;
+static bool     dinoMusicPlaying = false;
 
 static void dinoMusicStart() {
   dinoMusicIdx    = 0;
   dinoMusicNextMs = millis();
+  dinoMusicPlaying = true;
 }
 static void dinoMusicStop() {
+  dinoMusicPlaying = false;
   if (buzzerEnabled) buzzerNoTone();
 }
 static void dinoMusicTick() {
-  if (!buzzerEnabled) return;
+  if (!dinoMusicPlaying || !buzzerEnabled) return;
   uint32_t now = millis();
   if (now < dinoMusicNextMs) return;
   const DinoNote n = {
@@ -77,9 +80,29 @@ static void dinoMusicTick() {
 }
 
 // ==================== SFX ====================
-// Jump: quick rising chirp (two-tone)
+// Jump / Crash: quick multi-step tones
 static uint32_t dinoSfxUntil = 0;
 static uint8_t  dinoSfxPhase = 0;
+
+// Game Over SFX — arcade "bleep bloop" rapid descent (8 notes × 65ms = 520ms)
+static const uint16_t DINO_SFX_GO_NOTES[8] PROGMEM = { 880, 784, 698, 659, 587, 523, 494, 392 };
+static uint8_t  dinoGoSfxIdx    = 0;
+static uint32_t dinoGoSfxNextMs = 0;
+static bool     dinoGoSfxActive = false;
+
+static void dinoSfxGameOverStart() {
+  dinoGoSfxIdx    = 0;
+  dinoGoSfxNextMs = millis();
+  dinoGoSfxActive = true;
+}
+static void dinoGoSfxTick() {
+  if (!dinoGoSfxActive || !buzzerEnabled) return;
+  uint32_t now = millis();
+  if (now < dinoGoSfxNextMs) return;
+  if (dinoGoSfxIdx >= 8) { dinoGoSfxActive = false; buzzerNoTone(); return; }
+  buzzerTone(pgm_read_word(&DINO_SFX_GO_NOTES[dinoGoSfxIdx++]));
+  dinoGoSfxNextMs = now + 65;
+}
 
 static void dinoSfxJump() {
   if (!buzzerEnabled) return;
@@ -515,6 +538,8 @@ static void drawDino() {
 
 // ==================== GAME TICK ====================
 static void dinoTick(ButtonsEdge b) {
+  dinoGoSfxTick();  // runs every frame regardless of state (game over screen needs it)
+
   // ---- Title screen ----
   if (dinoSt.titleScreen) {
     if (b.ok)   { dinoInitGame(); dinoMusicStart(); dinoDrawAll(); }
@@ -596,6 +621,8 @@ static void dinoTick(ButtonsEdge b) {
     if (dinoSt.lives == 0) {
       dinoSt.gameOver = true;
       dinoMusicStop();
+      dinoSfxUntil = 0; dinoSfxPhase = 0;  // cancel crash SFX — game over sound takes over
+      dinoSfxGameOverStart();
       if (dinoSt.score > dinoSt.hiScore) {
         dinoSt.hiScore = dinoSt.score;
         prefs.begin("hackcon", false);

@@ -185,7 +185,29 @@ static void pkmMusicStart(uint8_t track) {
   pkmMusicNextMs  = 0;
   pkmMusicPlaying = true;
 }
-static void pkmMusicStop() { pkmMusicPlaying = false; buzzerNoTone(); }
+static void pkmMusicStop() { pkmMusicPlaying = false; if (buzzerEnabled) buzzerNoTone(); }
+
+// ==================== GAME OVER SFX ====================
+// Non-blocking descending "PWNED" melody (7 notes × 150ms = 1050ms)
+// RPG "power down" defeat — 6 wide-interval notes × 200ms = 1.2s, slow and dramatic
+static const uint16_t PKM_SFX_GO_NOTES[6] PROGMEM = { 523, 415, 330, 262, 208, 165 };
+static uint8_t  pkmGoSfxIdx    = 0;
+static uint32_t pkmGoSfxNextMs = 0;
+static bool     pkmGoSfxActive = false;
+
+static void pkmSfxGameOverStart() {
+  pkmGoSfxIdx    = 0;
+  pkmGoSfxNextMs = millis();
+  pkmGoSfxActive = true;
+}
+static void pkmGoSfxTick() {
+  if (!pkmGoSfxActive || !buzzerEnabled) return;
+  uint32_t now = millis();
+  if (now < pkmGoSfxNextMs) return;
+  if (pkmGoSfxIdx >= 6) { pkmGoSfxActive = false; buzzerNoTone(); return; }
+  buzzerTone(pgm_read_word(&PKM_SFX_GO_NOTES[pkmGoSfxIdx++]));
+  pkmGoSfxNextMs = now + 200;
+}
 
 static void pkmMusicTick() {
   if (!pkmMusicPlaying || !buzzerEnabled) { if (pkmMusicPlaying) buzzerNoTone(); return; }
@@ -222,21 +244,22 @@ struct PkmEnemy {
   uint8_t     defense;  // damage reduction
   uint16_t    color;    // RGB565 sprite color
   uint16_t    xpGiven;
+  uint8_t     minLevel; // minimum player level required to encounter this enemy
 };
 
 // Security software enemies — themed as corporate defenders
+// Fields: name, HP, ATK, DEF, color, XP, minLevel
 static const PkmEnemy pkmEnemies[PKM_MAX_ENEMIES] = {
-  // name            HP   ATK  DEF  color     XP
-  {"AVAST",          18,   4,   1,  0x07FF,   12},  // cyan — lightweight AV
-  {"Win Defender",   22,   5,   2,  0x001F,   16},  // blue — Windows Defender
-  {"Malwarebytes",   20,   6,   1,  0x03E0,   14},  // green — MWB
-  {"Fortinet",       35,   8,   4,  0xF800,   30},  // red — enterprise firewall
-  {"Palo Alto",      40,  10,   5,  0xFD20,   38},  // orange — NGFW
-  {"CrowdStrike",    38,   9,   4,  0xFC00,   35},  // yellow — EDR
-  {"SentinelOne",    36,   9,   3,  0xF81F,   32},  // magenta — EDR
-  {"Kaspersky",      30,   7,   3,  0xF800,   25},  // red — AV
-  {"Check Point",    42,  11,   6,  0xFFC0,   42},  // gold — NGFW boss
-  {"Cisco ASA",      50,  13,   7,  0x07E0,   55},  // bright green — firewall boss
+  {"AVAST",        30,  7,  7, 0x07FF, 14, 1},  // cyan   — lv1 starter
+  {"Win Defender", 36,  8,  8, 0x001F, 18, 1},  // blue   — lv1 starter
+  {"Malwarebytes", 32,  8,  7, 0x03E0, 16, 1},  // green  — lv1 starter
+  {"Kaspersky",    52, 10, 11, 0xF800, 28, 2},  // red    — unlocks lv2
+  {"Fortinet",     65, 12, 13, 0xF800, 34, 3},  // red    — unlocks lv3
+  {"CrowdStrike",  68, 13, 13, 0xFC00, 38, 4},  // yellow — unlocks lv4
+  {"SentinelOne",  66, 13, 12, 0xF81F, 36, 4},  // magenta— unlocks lv4
+  {"Palo Alto",    72, 14, 15, 0xFD20, 42, 5},  // orange — unlocks lv5
+  {"Check Point",  75, 15, 15, 0xFFC0, 48, 6},  // gold   — unlocks lv6
+  {"Cisco ASA",   100, 20, 19, 0x07E0, 85, 8},  // green  — unlocks lv8 (final boss)
 };
 
 // Hacker moves (player attacks)
@@ -250,9 +273,9 @@ struct PkmMove {
 
 static const PkmMove pkmMoves[PKM_MOVES] = {
   {"SQL Inject",  12,  15, 0xFFE0},  // yellow
-  {"Port Scan",   25,   4, 0x07FF},  // cyan
+  {"0-day",       25,   4, 0xF800},  // cyan  — high power, few uses
   {"Exploit Kit", 18,   8, 0xF81F},  // magenta
-  {"0-day",        8,  20, 0xF800},  // red — heavy hitter
+  {"Port Scan",    8,  20, 0x07FF},  // red   — low power, many uses
 };
 
 // ==================== GAME STATE ====================
@@ -1171,8 +1194,8 @@ static void pkmDrawResult(bool won) {
   // Box center X = 20 + 200/2 = 120. textSize=2: 12px/char. textSize=1: 6px/char.
   tft.setTextSize(2);
   tft.setTextColor(won ? (uint16_t)COLNEON : (uint16_t)0xF800);
-  if (won) { tft.setCursor(60, 82); tft.print("ALL CLEAR!"); }  // 10*12=120 → 120-60=60
-  else     { tft.setCursor(72, 82); tft.print("PWNED...");   }  //  8*12=96  → 120-48=72
+  if (won) { tft.setCursor(84, 82); tft.print("PWNED!"); }    //  6*12=72  → 120-36=84
+  else     { tft.setCursor(66, 82); tft.print("GAME OVER"); } //  9*12=108 → 120-54=66
 
   tft.setTextSize(1);
   tft.setTextColor(0xBDF7);
@@ -1251,21 +1274,16 @@ static void drawHackerMon() {
 
 // ==================== BATTLE LOGIC ====================
 
-// Pick a random enemy weighted by player level
+// Pick a random enemy available at the current player level
+// Uses minLevel field embedded in each PkmEnemy — impossible to get out of sync
 static uint8_t pkmPickEnemy() {
-  // Low levels get easier enemies, high levels get harder
   uint8_t pool[PKM_MAX_ENEMIES];
   uint8_t pcount = 0;
-  for (uint8_t i=0;i<PKM_MAX_ENEMIES;i++) {
-    uint8_t mhp = pkmEnemies[i].maxHp;
-    // Difficulty tier: <25=easy, <35=med, <45=hard, >=45=boss
-    uint8_t tier = (mhp<25)?0:(mhp<35)?1:(mhp<45)?2:3;
-    // Include enemy if its tier <= player_level/3
-    if (tier <= pkmLevel/3 + 1) pool[pcount++] = i;
+  for (uint8_t i = 0; i < PKM_MAX_ENEMIES; i++) {
+    if (pkmLevel >= pkmEnemies[i].minLevel) pool[pcount++] = i;
   }
-  if (pcount==0) return 0;
-  // pseudo-random using millis low bits
-  return pool[(uint8_t)(millis()&0xFF) % pcount];
+  if (pcount == 0) return 0;
+  return pool[(uint8_t)(millis() & 0xFF) % pcount];
 }
 
 static void pkmStartBattle(uint8_t enemyIdx) {
@@ -1339,6 +1357,8 @@ static void pkmEnemyAttack() {
     pkmGameOver  = true;
     pkmBattleOver = true;
     pkmBattleWon  = false;
+    pkmMusicStop();
+    pkmSfxGameOverStart();
   } else {
     pkmHP -= dmg;
   }
@@ -1604,6 +1624,7 @@ static void pkmOverworldTick(const ButtonsEdge& b) {
 // ==================== MAIN TICK ====================
 static void hackerMonTick(const ButtonsEdge& b) {
   pkmMusicTick();
+  pkmGoSfxTick();  // runs every frame — continues during result screen
 
   if (pkmScreen == PKM_SCREEN_OVERWORLD) {
     pkmOverworldTick(b);
