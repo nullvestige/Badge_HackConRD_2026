@@ -39,7 +39,7 @@ enum ScreenMode : uint8_t {
   MODE_DINO,
   MODE_MAZE,
   MODE_HACKMON,
-  MODE_SPACE_INVADERS,
+  MODE_STAR_INVADERS,
 };
 static ScreenMode mode = MODE_MENU;
 
@@ -1045,7 +1045,7 @@ static void bootSequence() {
   tft.setTextSize(1);
   tft.setTextColor(COLNEON);
   tft.setCursor(10, 42);
-  tft.print("Initializing RF...");
+  tft.print("Initializing...");
   delay(150);
 }
 
@@ -3834,7 +3834,7 @@ static void screensaverTick() {
   if (bootToSaverActive) return;
 
   // En juegos usamos timeout más largo para no interrumpir partidas activas
-  const bool inGame = (mode == MODE_DINO || mode == MODE_MAZE || mode == MODE_HACKMON || mode == MODE_SPACE_INVADERS);
+  const bool inGame = (mode == MODE_DINO || mode == MODE_MAZE || mode == MODE_HACKMON || mode == MODE_STAR_INVADERS);
   // const uint32_t IDLE_SAVER_MS = 30UL * 1000UL;  // 30s (DEV)
   const uint32_t IDLE_SAVER_MS = inGame
     ? 5UL * 60UL * 1000UL   // 5 min mientras se juega
@@ -4747,7 +4747,7 @@ static void updateFoxHuntBar() {
 #include "games/Dino.h"
 #include "games/Maze.h"
 #include "games/HackerMon.h"
-#include "games/SpaceInvaders.h"
+#include "games/StarInvaders.h"
 
 // ======================= UI control =======================
 static void goTo(ScreenMode m, bool skipIntro) {
@@ -4758,7 +4758,7 @@ static void goTo(ScreenMode m, bool skipIntro) {
   if (prevMode == MODE_DINO)           { dinoMusicStop();  buzzerNoTone(); }
   if (prevMode == MODE_MAZE)           { gameMusicStop();  buzzerNoTone(); }
   if (prevMode == MODE_HACKMON)        { pkmMusicStop();   buzzerNoTone(); }
-  if (prevMode == MODE_SPACE_INVADERS) { siMusicStop();    buzzerNoTone(); }
+  if (prevMode == MODE_STAR_INVADERS) { siMusicStop();    buzzerNoTone(); }
 
   // Change mode first (UI uses this)
   mode = m;
@@ -4870,7 +4870,7 @@ static void goTo(ScreenMode m, bool skipIntro) {
       drawGame();
     }
 
-  } else if (mode == MODE_SPACE_INVADERS) {
+  } else if (mode == MODE_STAR_INVADERS) {
     lastActivityMs = millis();
     if (skipIntro) {
       if      (siTitleScreen)   drawSpaceInvaders();
@@ -6341,7 +6341,7 @@ void loop() {
       if (gamesMenuIndex == 0) goTo(MODE_DINO);
       else if (gamesMenuIndex == 1) goTo(MODE_MAZE);
       else if (gamesMenuIndex == 2) goTo(MODE_HACKMON);
-      else if (gamesMenuIndex == 3) goTo(MODE_SPACE_INVADERS);
+      else if (gamesMenuIndex == 3) goTo(MODE_STAR_INVADERS);
     }
     if (b.back) goTo(MODE_MENU);
     powerLedsTick();
@@ -6380,8 +6380,8 @@ void loop() {
     return;
   }
 
-  // ===== Space Invaders =====
-  if (mode == MODE_SPACE_INVADERS) {
+  // ===== Star Invaders =====
+  if (mode == MODE_STAR_INVADERS) {
     siMusicTick();
     spaceInvadersTick(b);
     powerLedsTick();

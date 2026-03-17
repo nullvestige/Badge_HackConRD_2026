@@ -1,4 +1,4 @@
-# Badge HackConRD 2026 — v2.1
+# Badge HackConRD 2026 — v2.2
 
 Badge de conferencia hacker con firmware para **ESP32-C3**, diseñado para el evento HackConRD 2026. Fork del proyecto originalmente desarrollado por Junior Restituyo.
 
@@ -20,14 +20,15 @@ Badge de conferencia hacker con firmware para **ESP32-C3**, diseñado para el ev
 ## Estructura del proyecto
 
 ```
-HackCon_2026_v2_1/
-├── HackCon_2026_v2_1.ino      # Firmware principal
+HackCon_2026/
+├── HackCon_2026.ino           # Firmware principal
 ├── games/
 │   ├── Dino.h                  # Juego Dino Run
-│   ├── Maze.h                  # Juego Maze Runner (raycaster)
-│   └── HackerMon.h             # Juego Hackermon (estilo Pokémon)
+│   ├── Maze.h                  # Juego Doom Maze
+│   ├── HackerMon.h             # Juego Hackermon
+│   └── StarInvaders.h         # Juego Star Invaders
 ├── img/
-│   └── *.h                     # Imágenes del screensaver
+│   └── *.h                     # Imágenes del screensaver (22 imágenes)
 └── README.md
 ```
 
@@ -37,9 +38,10 @@ HackCon_2026_v2_1/
 
 ### Juegos
 
-- **Maze Runner** — laberinto con motor de raycaster 3D tipo Doom, gemas coleccionables, minimapa, música y efectos de sonido
+- **Doom Maze** — laberinto con motor de raycaster 3D tipo Doom, gemas, minimapa, música y efectos de sonido
 - **Dino Run** — runner infinito con dinosaurio, obstáculos, patos desde el aire y música de fondo (Imperial March)
-- **Hackermon** — RPG de mundo abierto estilo Pokémon, con batallas por turnos, sistema de XP y múltiples mapas
+- **Hackermon** — RPG de mundo abierto, con batallas por turnos, sistema de XP, múltiples mapas, sistema de rango y pantalla de título con mejor rango persistido
+- **Star Invaders** — clásico arcade de invasores espaciales
 
 #### Controles comunes para juegos
 
@@ -47,7 +49,7 @@ HackCon_2026_v2_1/
 |---|---|
 | DOWN + BACK (hold) | Salir del juego → menú de juegos |
 
-#### Maze Runner
+#### Doom Maze
 
 | Botón | Acción |
 |---|---|
@@ -72,6 +74,17 @@ HackCon_2026_v2_1/
 | UP / DOWN / BACK / OK | Moverse en el mapa |
 | DOWN + BACK | Salir al menú |
 
+#### Star Invaders
+
+| Botón/Combo | Acción |
+|---|---|
+| UP | Mover nave izquierda |
+| DOWN | Mover nave derecha |
+| OK | Disparar |
+| OK (título / game over) | Iniciar / Reintentar |
+| BACK (título / game over) | Volver al menú de juegos |
+| DOWN + BACK (hold) | Salir al menú durante el juego |
+
 ---
 
 ### Sistema RF (433 MHz)
@@ -91,7 +104,7 @@ HackCon_2026_v2_1/
 
 ### Screensaver
 
-- Imágenes animadas con efecto parallax, múltiples temas
+- **22 imágenes disponibles**
 
 ### LEDs
 
@@ -119,6 +132,7 @@ Cuatro temas de color seleccionables desde Settings: **Green** (default), **Red*
 | `frhist` | Historial de amigos RF |
 | `questal` | Estado de quest/logros |
 | `dinohi` | High score del Dino Run |
+| `pkm_rank` | Mejor rango alcanzado en Hackermon (0–5) |
 
 ---
 
@@ -136,20 +150,3 @@ arduino-cli upload -p COM<N> --fqbn esp32:esp32:esp32c3 "custom badge"
 # Monitor serial
 arduino-cli monitor -p COM<N> --config baudrate=115200
 ```
-
----
-
-## Changelog
-
-### v2.1
-
-- **Estructura**: archivos de juegos movidos a la carpeta `games/`
-- **Fox Hunting**: color "cerca" del indicador RSSI fijado a verde neón (`0x07E0`) independiente del tema de UI
-- **Maze / Dino / Hackermon**: combo de salida unificado a **DOWN + BACK** en los tres juegos
-- **Maze**: footer del menú de pausa corregido para usar el componente estándar `uiFooter()`
-- **Seguridad de memoria**: corregidos múltiples desbordamientos de buffer (`strcpy` → `strlcpy`, `strncpy` → `memcpy`, escritura fuera de bounds en nick)
-- **HackerMon**: añadida validación de índice en `pkmAwardXP()` antes del bit-shift; bounds clamp en `pkmStartBattle()`
-- **Maze raycaster**: clamp de `texY` para evitar lecturas fuera de la textura de pared; corrección de clipping de sprites de gemas; normalización periódica del vector de dirección para evitar deriva flotante
-- **RF**: corregido over-read de `badgeNick` en `frfBuild()` (buffer de 8 bytes leído como 14)
-- **Friends**: añadida validación de índice `friendsListIndex < friendsCount` antes de acceder a la lista
-- **Dino**: eliminado campo `boosting` sin uso del struct `dinoSt`

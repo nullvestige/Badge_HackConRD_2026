@@ -1,4 +1,4 @@
-// ======================= SPACE INVADERS =======================
+// ======================= STAR INVADERS =======================
 // Classic Space Invaders for HackConRD 2026 badge.
 //
 // Externals required from badge.ino:
