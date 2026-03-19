@@ -104,7 +104,7 @@ HackCon_2026/
 
 ### Screensaver
 
-- **22 imágenes disponibles**
+- **21 imágenes disponibles**
 
 ### LEDs
 
