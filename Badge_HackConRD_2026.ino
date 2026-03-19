@@ -1613,8 +1613,8 @@ static void storyFoxIntroShow() {
 
 // ======================= QUEST: ALIEN (Hidden Challenge) =======================
 #define QUEST_ALIEN_TRIGGER_FRIENDS  5
-#define QUEST_ALIEN_NEED_MIN         7 
-#define QUEST_ALIEN_NEED_MAX         7 
+#define QUEST_ALIEN_NEED_MIN         5
+#define QUEST_ALIEN_NEED_MAX         5
 
 static bool     questAlienArmed = false;
 static bool     questAlienDone  = false;
