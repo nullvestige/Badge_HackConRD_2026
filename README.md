@@ -1,6 +1,6 @@
 # Badge HackConRD 2026 — v1.1
 
-Badge de conferencia hacker con firmware para **ESP32-C3**, diseñado para el evento HackConRD 2026. Bifurcación del proyecto originalmente desarrollado por Junior Restituyo.
+Badge de conferencia hacker con firmware para **ESP32-C3**, diseñado para el evento HackConRD 2026. Proyecto originalmente desarrollado por Junior Restituyo.
 
 ---
 
@@ -22,8 +22,8 @@ Para más detalles sobre los pines y librerías requeridas, consultar el documen
 ## Estructura del proyecto
 
 ```
-HackCon_2026/
-├── HackCon_2026.ino           # Firmware principal
+Badge_HackCon_2026/
+├── Badge_HackCon_2026.ino           # Firmware principal
 ├── games/
 │   ├── Dino.h                  # Juego Dino Run
 │   ├── Maze.h                  # Juego Doom Maze
@@ -32,6 +32,69 @@ HackCon_2026/
 ├── img/
 │   └── *.h                     # Imágenes del screensaver (22 imágenes)
 └── README.md
+```
+
+---
+
+## Librerías requeridas
+
+Instalar desde el **Gestor de Librerías** de Arduino IDE (`Sketch → Include Library → Manage Libraries`):
+
+| Librería |
+|---|
+| Adafruit GFX Library by Adafruit |
+| Adafruit ST7789 and ST7735 Library by Adafruit |
+| FastLED by Daniel Garcia |
+| QRCodeGenerator by Felix Erdmann |
+| Preferences (incluida con el core ESP32, no requiere instalación manual) |
+
+### Board (placa)
+
+1. Ir a `Tools → Board → Boards Manager`, buscar **ESP32** e instalar **esp32 by Espressif Systems**.
+2. Seleccionar la placa: `Tools → Board → ESP32 Arduino → ESP32C3 Dev Module`.
+
+---
+
+## Flashear con Arduino IDE
+
+### Configuración de Tools
+
+| Opción | Valor |
+|---|---|
+| Board | ESP32C3 Dev Module |
+| USB CDC On Boot | **Enabled** (importante para monitor serial y upload sin problemas) |
+| CPU Frequency | 160 MHz |
+| Flash Mode | QIO |
+| Flash Size | 4MB (32Mb) |
+| Partition Scheme | Huge APP 3MB No OTA/ 1MB SPIFFS |
+| Upload Speed | 921600 |
+| Port | COMx (el puerto que aparezca al conectar el badge) |
+
+### Pasos para subir el firmware
+
+1. Conectar el badge por USB.
+2. Verificar que el puerto aparezca en `Tools → Port`. Si no aparece, instalar los drivers CH340 o CP210x según el chip USB de tu badge.
+3. Compilar con `Sketch → Verify/Compile` (Ctrl+R) para confirmar que no hay errores.
+4. Subir con `Sketch → Upload` (Ctrl+U).
+5. Si el upload falla, mantener presionado el botón BOOT del ESP32-C3 mientras se inicia la carga y soltar cuando aparezca *Connecting...*.
+
+> **Nota:** Si usas un ESP32-C3 con USB nativo, asegúrate de tener **USB CDC On Boot: Enabled**. Sin esto el monitor serial puede no funcionar y el upload puede fallar.
+
+---
+
+## Flashear con arduino-cli
+
+Proyecto **Arduino** para `esp32:esp32:esp32c3`.
+
+```sh
+# Compilar
+arduino-cli compile --fqbn esp32:esp32:esp32c3 "custom badge"
+
+# Flashear
+arduino-cli upload -p COM<N> --fqbn esp32:esp32:esp32c3 "custom badge"
+
+# Monitor serial
+arduino-cli monitor -p COM<N> --config baudrate=115200
 ```
 
 ---
@@ -136,8 +199,6 @@ Cuatro temas de color seleccionables desde Configuración: **Verde** (predetermi
 | `dinohi` | Puntuación máxima del Dino Run |
 | `pkm_rank` | Mejor rango alcanzado en Hackermon (0–5) |
 
-
-
 ---
 
 ## Gestión de imágenes del protector de pantalla
@@ -216,66 +277,3 @@ Buscar dentro del array `SAVERS[]` (alrededor de la línea 948) la línea corres
 ```
 
 > **Importante:** el firmware calcula `SAVER_COUNT` automáticamente con `sizeof(SAVERS)`, por lo que no hay ningún contador que actualizar manualmente. Si se deja el `#include` del `.h` pero se borró el archivo, el proyecto no compilará.
-
----
-
-## Librerías requeridas
-
-Instalar desde el **Gestor de Librerías** de Arduino IDE (`Sketch → Include Library → Manage Libraries`):
-
-| Librería |
-|---
-| Adafruit GFX Library by Adafruit 
-| Adafruit ST7789 and ST7735 Library by Adafruit 
-| FastLED by Daniel Garcia 
-| Preferences (incluida con el core ESP32, no requiere instalación manual) 
-| QRCodeGenerator by Felix Erdmann
-
-### Board (placa)
-
-1. Ir a `Tools → Board → Boards Manager`, buscar **ESP32** e instalar **esp32 by Espressif Systems**.
-2. Seleccionar la placa: `Tools → Board → ESP32 Arduino → ESP32C3 Dev Module`.
-
----
-
-## Flashear con Arduino IDE
-
-### Configuración de Tools
-
-| Opción | Valor |
-|---|---|
-| Board | ESP32C3 Dev Module |
-| USB CDC On Boot | **Enabled** (importante para monitor serial y upload sin problemas) |
-| CPU Frequency | 160 MHz |
-| Flash Mode | QIO |
-| Flash Size | 4MB (32Mb) |
-| Partition Scheme | Huge APP 3MB No OTA/ 1MB SPIFFS |
-| Upload Speed | 921600 |
-| Port | COMx (el puerto que aparezca al conectar el badge) |
-
-### Pasos para subir el firmware
-
-1. Conectar el badge por USB.
-2. Verificar que el puerto aparezca en `Tools → Port`. Si no aparece, instalar los drivers CH340 o CP210x según el chip USB de tu badge.
-3. Compilar con `Sketch → Verify/Compile` (Ctrl+R) para confirmar que no hay errores.
-4. Subir con `Sketch → Upload` (Ctrl+U).
-5. Si el upload falla, mantener presionado el botón BOOT del ESP32-C3 mientras se inicia la carga y soltar cuando aparezca *Connecting...*.
-
-> **Nota:** Si usas un ESP32-C3 con USB nativo, asegúrate de tener **USB CDC On Boot: Enabled**. Sin esto el monitor serial puede no funcionar y el upload puede fallar.
-
----
-
-## Compilar y flashear (arduino-cli)
-
-Proyecto **Arduino** para `esp32:esp32:esp32c3`.
-
-```sh
-# Compilar
-arduino-cli compile --fqbn esp32:esp32:esp32c3 "custom badge"
-
-# Flashear
-arduino-cli upload -p COM<N> --fqbn esp32:esp32:esp32c3 "custom badge"
-
-# Monitor serial
-arduino-cli monitor -p COM<N> --config baudrate=115200
-```
