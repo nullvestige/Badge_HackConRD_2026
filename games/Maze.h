@@ -1,44 +1,40 @@
-// ======================= MAZE RUNNER (Raycaster Game) =======================
-// Self-contained game module. Include once from badge.cpp.
+// ======================= MAZE RUNNER (Juego Raycaster) =======================
+// Módulo de juego autocontenido. Incluir una sola vez desde badge.cpp.
 //
-// Externals required from badge.cpp:
+// Externos requeridos de badge.cpp:
 //   tft, busForTFT(), beep(), buzzerTone(), buzzerNoTone(), buzzerEnabled,
 //   isPressed(), PUSH1PIN..PUSH4PIN,
 //   uiFrame(), uiMsgCenter(), COLDIM, COLBLACK,
 //   goTo(), MODE_MENU, ButtonsEdge
 
-// ---- Music engine -------------------------------------------------------
+// ---- Motor de música ---------------------------------------------------
 
 struct GameNote { uint16_t freq; uint16_t dur; };
 
-// Epic Dungeon Theme — original composition for HackConRD 2026 badge
-// Dramatic cinematic melody in E minor — powerful, intense, action-RPG boss feel
-// Tempo ~150 BPM  Q=400ms  E=200ms  S=100ms  DQ=600ms  H=800ms
-// E4=330 F#4=370 G4=392 A4=440 B4=494 C5=523 D5=587 E5=659 F#5=740 G5=784 A5=880 B5=988
-#define _Q   400   // quarter
-#define _E   200   // eighth
-#define _S   100   // sixteenth
-#define _DQ  600   // dotted quarter
-#define _H   800   // half
+#define _Q   400
+#define _E   200
+#define _S   100
+#define _DQ  600
+#define _H   800
 
 static const GameNote gameMelody[] PROGMEM = {
-  // --- Section A: main epic theme — power chords implied, octave jumps ---
-  {330,_E},{494,_E},{659,_Q},{587,_E},{494,_E},                    // E4 B4 E5 D5 B4
-  {392,_E},{587,_E},{784,_Q},{740,_E},{587,_E},                    // G4 D5 G5 F#5 D5
-  {659,_E},{587,_E},{494,_E},{392,_E},{440,_E},{494,_E},{523,_E},{587,_E}, // E5 D5 B4 G4 A4 B4 C5 D5
-  {659,_H},{0,_Q},                                                  // E5 rest
+  // --- Sección A: tema épico principal ---
+  {330,_E},{494,_E},{659,_Q},{587,_E},{494,_E},
+  {392,_E},{587,_E},{784,_Q},{740,_E},{587,_E},
+  {659,_E},{587,_E},{494,_E},{392,_E},{440,_E},{494,_E},{523,_E},{587,_E},
+  {659,_H},{0,_Q},
 
-  // --- Section B: relentless driving run, descend then climb ---
-  {659,_S},{587,_S},{523,_S},{494,_S},{440,_S},{392,_S},{370,_S},{330,_S}, // E5→E4 fast descent
-  {392,_E},{440,_E},{494,_E},{523,_E},{587,_E},{659,_DQ},{0,_E},   // G4 climb to E5
-  {740,_E},{659,_E},{587,_E},{523,_E},{494,_DQ},{440,_E},          // F#5 E5 D5 C5 B4. A4
-  {392,_H},{0,_Q},                                                  // G4 rest
+  // --- Sección B: corrida intensa e implacable ---
+  {659,_S},{587,_S},{523,_S},{494,_S},{440,_S},{392,_S},{370,_S},{330,_S},
+  {392,_E},{440,_E},{494,_E},{523,_E},{587,_E},{659,_DQ},{0,_E},
+  {740,_E},{659,_E},{587,_E},{523,_E},{494,_DQ},{440,_E},
+  {392,_H},{0,_Q},
 
-  // --- Section C: climax — arpeggio burst to B5, then dramatic resolve ---
-  {494,_S},{659,_S},{784,_S},{988,_S},{880,_E},{784,_E},{740,_E},{659,_E}, // B4→B5 burst, fall
-  {587,_E},{659,_E},{740,_E},{784,_DQ},{740,_E},                   // D5 E5 F#5 G5. F#5
-  {659,_E},{587,_E},{523,_E},{494,_E},{440,_E},{392,_E},{370,_E},{330,_E}, // E5 D5 C5 B4 A4 G4 F#4 E4
-  {659,_Q},{494,_Q},{330,_Q},{0,_Q},                               // E5 B4 E4 big resolve
+  // --- Sección C: clímax ---
+  {494,_S},{659,_S},{784,_S},{988,_S},{880,_E},{784,_E},{740,_E},{659,_E},
+  {587,_E},{659,_E},{740,_E},{784,_DQ},{740,_E},
+  {659,_E},{587,_E},{523,_E},{494,_E},{440,_E},{392,_E},{370,_E},{330,_E},
+  {659,_Q},{494,_Q},{330,_Q},{0,_Q},
 };
 
 #undef _Q
@@ -63,7 +59,6 @@ static void gameMusicStop() {
   buzzerNoTone();
 }
 
-// Call every frame - non-blocking, advances melody by wall-clock time
 static void gameMusicTick() {
   if (!gameMusicPlaying || !buzzerEnabled) {
     if (gameMusicPlaying) buzzerNoTone();
@@ -75,20 +70,20 @@ static void gameMusicTick() {
   uint16_t freq = pgm_read_word(&gameMelody[gameMusicIdx].freq);
   uint16_t dur  = pgm_read_word(&gameMelody[gameMusicIdx].dur);
 
-  buzzerTone(freq);  // freq=0 → buzzerTone silences automatically
+  buzzerTone(freq);
 
   gameMusicNextMs = now + dur;
-  if (++gameMusicIdx >= gameMelodyLen) gameMusicIdx = 0; // loop
+  if (++gameMusicIdx >= gameMelodyLen) gameMusicIdx = 0;
 }
 
-// ---- Map & constants ----------------------------------------------------
+// ---- Mapa y constantes -------------------------------------------------
 
 #define GAME_W 240
-#define GAME_H 220   // leave 20px for HUD at bottom
+#define GAME_H 220   // dejar 20px para el HUD en la parte inferior
 #define MAP_W  12
 #define MAP_H  12
 
-// Wall types: 1=brick, 2=exit(red), 3=stone, 4=skull(easter egg), 5=circuit, 6=vines
+// Tipos de pared: 1=ladrillo, 2=salida(rojo), 3=piedra, 4=calavera(easter egg), 5=circuito, 6=enredaderas
 static const uint8_t gameMap[MAP_H][MAP_W] PROGMEM = {
   {1,3,1,3,1,3,1,3,1,3,1,1},
   {3,0,0,0,1,0,0,0,0,0,0,5},
@@ -104,7 +99,7 @@ static const uint8_t gameMap[MAP_H][MAP_W] PROGMEM = {
   {1,3,1,3,1,3,1,3,1,3,1,1},
 };
 
-// ---- Collectible gems ---------------------------------------------------
+// ---- Gemas coleccionables ----------------------------------------------
 
 #define GAME_MAX_GEMS 5
 struct GameGem { float x, y; bool collected; };
@@ -113,34 +108,34 @@ static uint8_t  gameTotalGems = 0;
 static uint8_t  gameCollected = 0;
 static bool     gameWon       = false;
 
-// ---- Player state -------------------------------------------------------
+// ---- Estado del jugador ------------------------------------------------
 
-static float gpX, gpY; // position
-static float gdX, gdY; // direction vector
-static float gcX, gcY; // camera plane
+static float gpX, gpY; // posición
+static float gdX, gdY; // vector de dirección
+static float gcX, gcY; // plano de cámara
 
-// ---- Render state -------------------------------------------------------
+// ---- Estado del renderizado --------------------------------------------
 
-// 2px-wide column strip; each entry is one RGB565 pixel
+// Tira de columna de 2px de ancho; cada entrada es un pixel RGB565
 static uint16_t gameColBuf[GAME_H * 2];
-static float    gameZBuf[GAME_W / 2];                // perpDist per half-res column (for sprite occlusion)
-static bool     gameMoved = true;                    // dirty flag - redraw minimap
+static float    gameZBuf[GAME_W / 2];                // perpDist por columna a media resolución (para oclusión de sprites)
+static bool     gameMoved = true;                    // bandera dirty - redibujar minimapa
 static uint16_t gameMinimapBuf[MAP_W * 3 * MAP_H * 3]; // 36x36
-static uint8_t  gameRotFrames = 0;                   // rotation frame counter for renormalization
+static uint8_t  gameRotFrames = 0;                   // contador de frames de rotación para renormalización
 
-// ---- Helpers ------------------------------------------------------------
+// ---- Funciones auxiliares ----------------------------------------------
 
 static uint8_t gameMapAt(int x, int y) {
   if (x < 0 || x >= MAP_W || y < 0 || y >= MAP_H) return 1;
   return pgm_read_byte(&gameMap[y][x]);
 }
 
-// ---- Procedural wall textures -------------------------------------------
+// ---- Texturas de pared procedurales ------------------------------------
 
 __attribute__((optimize("O3")))
 static uint16_t gameWallPixel(uint8_t wallType, bool side, int texX, int texY) {
   switch (wallType) {
-    case 1: { // BRICK - mortar grid + two-tone bricks
+    case 1: {
       uint16_t mortar = 0x4A49;
       int row = texY >> 3;
       if ((texY & 7) == 0) return mortar;
@@ -148,19 +143,19 @@ static uint16_t gameWallPixel(uint8_t wallType, bool side, int texX, int texY) {
       if ((bx & 31) == 0) return mortar;
       return ((texX ^ texY) & 4) ? (side ? 0x9980 : 0xC260) : (side ? 0x6940 : 0x8B00);
     }
-    case 2: { // EXIT - red wall with dark archway
+    case 2: {
       int cx = abs(texX - 32);
       if (cx < 10 && texY > 12) return 0x2000;
       if (cx < 12 && texY > 10) return 0xFBE0;
       if ((texY & 7) == 0) return 0x4000;
       return side ? 0xA800 : 0xF800;
     }
-    case 3: { // STONE - block grid with shade variation
+    case 3: {
       if ((texX & 15) == 0 || (texY & 15) == 0) return 0x39C7;
       uint8_t hash = ((texX >> 4) * 7 + (texY >> 4) * 13) & 0x07;
       return side ? (0x4A69 + hash * 0x0040) : (0x6B6D + hash * 0x0040);
     }
-    case 4: { // SKULL easter egg
+    case 4: {
       int sx = (texX - 16) >> 1;
       int sy = (texY - 8)  >> 1;
       if (sx >= 0 && sx < 16 && sy >= 0 && sy < 15) {
@@ -177,13 +172,13 @@ static uint16_t gameWallPixel(uint8_t wallType, bool side, int texX, int texY) {
       }
       return side ? 0x18C3 : 0x2945;
     }
-    case 5: { // CIRCUIT - PCB traces
+    case 5: {
       uint16_t trace = side ? 0x03E0 : 0x07E0;
       if ((texX & 7) == 0 || (texY & 7) == 0) return trace;
       if ((texX & 15) < 3 && (texY & 15) < 3)  return 0x07FF;
       return side ? 0x0200 : 0x0320;
     }
-    case 6: { // VINES - stone with integer zigzag vines
+    case 6: {
       uint16_t base = side ? 0x528A : 0x6B6D;
       if ((texX % 12) == 0 || (texY % 12) == 0) base = 0x39C7;
       int phase = texY % 20;
@@ -201,13 +196,12 @@ static uint16_t gameWallPixel(uint8_t wallType, bool side, int texX, int texY) {
   }
 }
 
-// ---- Raycaster frame ----------------------------------------------------
+// ---- Frame del raycaster -----------------------------------------------
 
 __attribute__((optimize("O3")))
 static void gameRenderFrame() {
   busForTFT();
 
-  // Half-resolution: render 120 columns, each 2px wide = 240px total
   const int HALF_W = GAME_W / 2;
 
   for (int col = 0; col < HALF_W; col++) {
@@ -258,13 +252,11 @@ static void gameRenderFrame() {
     if (texX < 0)  texX = 0;
     if (texX > 63) texX = 63;
 
-    // Ceiling (black) - 32-bit writes
     {
       uint32_t *p = (uint32_t *)gameColBuf;
       for (int y = 0; y < drawStart; y++) p[y] = 0x00000000u;
     }
 
-    // Wall - textured, duplicated to 2nd column
     int wallH = drawEnd - drawStart + 1;
     for (int y = drawStart; y <= drawEnd; y++) {
       int texY = ((y - drawStart) << 6) / wallH;
@@ -275,7 +267,6 @@ static void gameRenderFrame() {
       gameColBuf[y * 2 + 1] = c;
     }
 
-    // Floor - 32-bit writes
     {
       uint32_t  floorPair = 0x18C318C3u;
       uint32_t *p = (uint32_t *)gameColBuf + drawEnd + 1;
@@ -286,7 +277,7 @@ static void gameRenderFrame() {
     tft.drawRGBBitmap(x, 0, gameColBuf, 2, GAME_H);
   }
 
-  // Gem sprites (projected circles)
+  // Sprites de gemas (círculos proyectados)
   float invDet = 1.0f / (gcX * gdY - gdX * gcY);
   for (uint8_t i = 0; i < gameTotalGems; i++) {
     if (gameGems[i].collected) continue;
@@ -302,7 +293,6 @@ static void gameRenderFrame() {
     int r = sprH / 4;
     if (r < 2)  r = 2;
     if (r > 10) r = 10;
-    // Z-buffer occlusion: check left, center, and right columns of sprite
     int sprColC = sprScreenX / 2;
     int sprColL = max(0, (sprScreenX - r) / 2);
     int sprColR = min(GAME_W / 2 - 1, (sprScreenX + r) / 2);
@@ -317,7 +307,7 @@ static void gameRenderFrame() {
   }
 }
 
-// ---- HUD & minimap ------------------------------------------------------
+// ---- HUD y minimapa -----------------------------------------------------
 
 static bool gameNearWallType(uint8_t wtype) {
   int px = (int)gpX, py = (int)gpY;
@@ -356,7 +346,6 @@ static void gameDrawHUD() {
     tft.print("UP/DN OK/BK");
   }
 
-  // Minimap - only redraw on movement (36x36 sent in one SPI transaction)
   if (gameMoved) {
     const int mmX = GAME_W - 40, mmY = 4;
     const int mmS = 3;
@@ -383,10 +372,10 @@ static void gameDrawHUD() {
   }
 }
 
-// ---- Pause menu ---------------------------------------------------------
+// ---- Menú de pausa ------------------------------------------------------
 
 static bool    gamePaused     = false;
-static uint8_t gamePauseIdx   = 0;  // 0=Resume, 1=Exit
+static uint8_t gamePauseIdx   = 0;
 
 static void gameDrawPauseMenu() {
   busForTFT();
@@ -409,7 +398,7 @@ static void gameDrawPauseMenu() {
   uiFooter("UP/DN sel   OK confirm   BACK resume");
 }
 
-// ---- Win screen ---------------------------------------------------------
+// ---- Pantalla de victoria -----------------------------------------------
 
 static void gameDrawWinScreen() {
   busForTFT();
@@ -420,7 +409,7 @@ static void gameDrawWinScreen() {
   uiMsgCenter("BACK to exit", 180, COLDIM, 1);
 }
 
-// ---- Init & entry point -------------------------------------------------
+// ---- Inicialización y punto de entrada ----------------------------------
 
 static void gameInit() {
   gpX = 1.5f; gpY = 1.5f;
@@ -451,7 +440,7 @@ static void drawGame() {
   gameDrawHUD();
 }
 
-// ---- Per-frame tick (input + physics + redraw) --------------------------
+// ---- Tick por frame (entrada + física + redibujado) ---------------------
 
 static void gameTick(ButtonsEdge &b) {
   if (gameWon) {
@@ -459,7 +448,7 @@ static void gameTick(ButtonsEdge &b) {
     return;
   }
 
-  // ---- Pause menu --------------------------------------------------------
+  // ---- Menú de pausa -----------------------------------------------------
   if (gamePaused) {
     if (b.up)   { gamePauseIdx = 0; gameDrawPauseMenu(); }
     if (b.down) { gamePauseIdx = 1; gameDrawPauseMenu(); }
@@ -471,7 +460,7 @@ static void gameTick(ButtonsEdge &b) {
     return;
   }
 
-  // ---- Combo: DOWN + BACK → exit to games menu (same as HackerMon) -------
+  // ---- Combo: ABAJO + BACK → salir al menú de juegos (igual que HackerMon)
   if (isPressed(PUSH2PIN) && isPressed(PUSH4PIN)) {
     gameMusicStop();
     while (isPressed(PUSH2PIN) || isPressed(PUSH4PIN)) delay(10);
@@ -483,36 +472,36 @@ static void gameTick(ButtonsEdge &b) {
   bool moved = false;
   const float moveSpd = 0.12f;
   static const float rotC = 0.9968f; // cos(0.08 rad)
-  static const float rotS = 0.0799f; // sin(0.08 rad)
+  static const float rotS = 0.0799f; // sen(0.08 rad)
 
-  if (isPressed(PUSH1PIN)) { // UP = forward
+  if (isPressed(PUSH1PIN)) {
     float nx = gpX + gdX * moveSpd;
     float ny = gpY + gdY * moveSpd;
     if (gameMapAt((int)nx, (int)gpY) == 0) gpX = nx;
     if (gameMapAt((int)gpX, (int)ny) == 0) gpY = ny;
     moved = true;
   }
-  if (isPressed(PUSH2PIN)) { // DOWN = backward
+  if (isPressed(PUSH2PIN)) {
     float nx = gpX - gdX * moveSpd;
     float ny = gpY - gdY * moveSpd;
     if (gameMapAt((int)nx, (int)gpY) == 0) gpX = nx;
     if (gameMapAt((int)gpX, (int)ny) == 0) gpY = ny;
     moved = true;
   }
-  if (isPressed(PUSH4PIN)) { // OK = turn right
+  if (isPressed(PUSH4PIN)) {
     float od = gdX, oc = gcX;
     gdX = gdX * rotC + gdY * rotS;  gdY = -od * rotS + gdY * rotC;
     gcX = gcX * rotC + gcY * rotS;  gcY = -oc * rotS + gcY * rotC;
     moved = true;
   }
-  if (isPressed(PUSH3PIN)) { // BACK = turn left
+  if (isPressed(PUSH3PIN)) {
     float od = gdX, oc = gcX;
     gdX = gdX * rotC - gdY * rotS;  gdY = od  * rotS + gdY * rotC;
     gcX = gcX * rotC - gcY * rotS;  gcY = oc  * rotS + gcY * rotC;
     moved = true;
   }
 
-  // Renormalize direction + camera plane every 60 frames to prevent float drift
+  // Renormalizar dirección + plano de cámara cada 60 frames para evitar deriva flotante
   if (moved && ++gameRotFrames >= 60) {
     gameRotFrames = 0;
     float m = sqrtf(gdX * gdX + gdY * gdY);
@@ -521,7 +510,7 @@ static void gameTick(ButtonsEdge &b) {
 
   gameMoved = moved;
 
-  // Gem collection
+  // Recolección de gemas
   for (uint8_t i = 0; i < gameTotalGems; i++) {
     if (gameGems[i].collected) continue;
     float dx = gpX - gameGems[i].x;
@@ -533,7 +522,7 @@ static void gameTick(ButtonsEdge &b) {
     }
   }
 
-  // Exit detection (wall type 2, all gems collected)
+  // Detección de salida (tipo de pared 2, todas las gemas recolectadas)
   if (gameCollected >= gameTotalGems) {
     int mx = (int)gpX, my = (int)gpY;
     for (int dy = -1; dy <= 1; dy++) {

@@ -1,33 +1,33 @@
-// ===================== HACKER MON (Pokemon-style RPG) =====================
-// Hacker theme: walk a cyberpunk city, encounter security software enemies,
-// fight in a classic turn-based battle system.
+// ===================== HACKER MON (RPG estilo Pokemon) =====================
+// Temática hacker: explora una ciudad cyberpunk, enfrenta enemigos de software
+// de seguridad en un sistema de batalla clásico por turnos.
 //
-// Externals from badge.ino:
+// Externos requeridos desde badge.ino:
 //   tft, busForTFT(), buzzerTone(), buzzerNoTone(), buzzerEnabled,
 //   isPressed(), PUSH1PIN..PUSH4PIN, ButtonsEdge,
 //   COLNEON, COLDIM, COLDARK, COLBLACK, COLWHITE,
 //   goTo(), MODE_MENU
 
-// ==================== MAP ====================
-// Tile types (shared across all maps):
-//   0 = open ground (walkable, random encounter zone)
-//   1 = wall/obstacle (solid, impassable)
-//   3 = healing spot (walkable, restores HP+PP)
-//   4 = portal to next map
+// ==================== MAPA ====================
+// Tipos de tile (compartidos en todos los mapas):
+//   0 = suelo abierto (transitable, zona de encuentros aleatorios)
+//   1 = pared/obstáculo (sólido, impasable)
+//   3 = punto de curación (transitable, restaura HP+PP)
+//   4 = portal al siguiente mapa
 
 #define PKM_MAP_W   20
 #define PKM_MAP_H   17
-#define PKM_TILE    12   // world tile size (collision)
-#define PKM_TDRAW   12   // drawn tile size
+#define PKM_TILE    12   // tamaño de tile del mundo (colisión)
+#define PKM_TDRAW   12   // tamaño de tile dibujado
 #define PKM_VP_W   240
-#define PKM_VP_H   208   // top 208px = world view, bottom 32px = HUD
+#define PKM_VP_H   208   // 208px superiores = vista del mundo, 32px inferiores = HUD
 #define PKM_CX     120
 #define PKM_CY     104
 
 #define PKM_NUM_MAPS  4
 
-// MAP 0 — FOREST
-// Portal at (18,10) → exits east border
+// MAPA 0 — BOSQUE
+// Portal en (18,10) → sale por el borde este
 static const uint8_t pkmMapForest[PKM_MAP_H][PKM_MAP_W] PROGMEM = {
   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
   {1,0,0,1,0,0,0,1,0,0,0,0,1,0,0,0,1,0,0,1},
@@ -48,8 +48,7 @@ static const uint8_t pkmMapForest[PKM_MAP_H][PKM_MAP_W] PROGMEM = {
   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
 };
 
-// MAP 1 — DESERT
-// Open sand dunes, cactus walls, oasis heals, portal at (1,10) → exits west
+// MAPA 1 — DESIERTO
 static const uint8_t pkmMapDesert[PKM_MAP_H][PKM_MAP_W] PROGMEM = {
   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
   {1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,1},
@@ -70,8 +69,7 @@ static const uint8_t pkmMapDesert[PKM_MAP_H][PKM_MAP_W] PROGMEM = {
   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
 };
 
-// MAP 2 — SNOW
-// Ice fields, snowdrift walls, hot spring heals, portal at (18,10)
+// MAPA 2 — NIEVE
 static const uint8_t pkmMapSnow[PKM_MAP_H][PKM_MAP_W] PROGMEM = {
   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
   {1,0,0,0,1,0,0,0,0,1,0,0,1,0,0,0,0,0,0,1},
@@ -92,8 +90,7 @@ static const uint8_t pkmMapSnow[PKM_MAP_H][PKM_MAP_W] PROGMEM = {
   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
 };
 
-// MAP 3 — ISLAND
-// Tropical island: water surrounds (impassable), palm walls, coconut spring, portal at (1,10)
+// MAPA 3 — ISLA
 static const uint8_t pkmMapIsland[PKM_MAP_H][PKM_MAP_W] PROGMEM = {
   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
   {1,1,1,1,0,0,0,0,1,0,0,0,1,0,0,0,0,1,1,1},
@@ -114,27 +111,26 @@ static const uint8_t pkmMapIsland[PKM_MAP_H][PKM_MAP_W] PROGMEM = {
   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
 };
 
-// Portal destinations: {destMap, destX, destY}
+// Destinos de portal: {mapaDestino, destX, destY}
 struct PkmPortal { uint8_t mapIdx; int8_t px; int8_t py; };
 static const PkmPortal pkmPortals[PKM_NUM_MAPS] PROGMEM = {
-  {1, 1, 10},  // Forest  portal → Desert  entry (1,10)
-  {2, 1, 10},  // Desert  portal → Snow    entry (1,10)
-  {3, 1, 10},  // Snow    portal → Island  entry (1,10)
-  {0, 1, 10},  // Island  portal → Forest  entry (1,10)
+  {1, 1, 10},  // portal Bosque  → entrada Desierto (1,10)
+  {2, 1, 10},  // portal Desierto → entrada Nieve   (1,10)
+  {3, 1, 10},  // portal Nieve   → entrada Isla     (1,10)
+  {0, 1, 10},  // portal Isla    → entrada Bosque   (1,10)
 };
 
-// Map backgrounds (fill color when no tile drawn)
+// Fondos de mapa (color de relleno cuando no hay tile dibujado)
 static const uint16_t pkmMapBgColor[PKM_NUM_MAPS] PROGMEM = {
-  0x0240,  // Forest  — dark green
-  0x8C00,  // Desert  — dark sand/brown
-  0x4A5F,  // Snow    — cold blue-grey
-  0x0013,  // Island  — deep ocean blue
+  0x0240,  // Bosque  — verde oscuro
+  0x8C00,  // Desierto — arena/marrón oscuro
+  0x4A5F,  // Nieve   — azul-gris frío
+  0x0013,  // Isla    — azul oceánico profundo
 };
 
-// ==================== MUSIC ====================
+// ==================== MÚSICA ====================
 struct PkmNote { uint16_t freq; uint16_t dur; };
 
-// Overworld theme — upbeat 8-bit RPG feel
 #define _P8(f)  {(f), 100},{0,25}
 #define _P4(f)  {(f), 210},{0,50}
 #define _P2(f)  {(f), 430},{0,80}
@@ -151,7 +147,6 @@ static const PkmNote pkmOverworldMelody[] PROGMEM = {
 };
 static const int pkmOverworldLen = sizeof(pkmOverworldMelody)/sizeof(pkmOverworldMelody[0]);
 
-// Battle theme — tense, punchy
 static const PkmNote pkmBattleMelody[] PROGMEM = {
   _P16(880),_P16(988),_P8(1047),_P16(880),_P16(988),_P8(784),
   _P16(880),_P16(988),_P8(1047),_P8(1175),_P4(1047),
@@ -161,7 +156,6 @@ static const PkmNote pkmBattleMelody[] PROGMEM = {
 };
 static const int pkmBattleLen = sizeof(pkmBattleMelody)/sizeof(pkmBattleMelody[0]);
 
-// Victory jingle
 static const PkmNote pkmVictoryMelody[] PROGMEM = {
   _P8(784),_P8(784),_P8(784),_P8(784),
   _P8(659),_P8(698),_P8(784),{0,80},
@@ -177,7 +171,7 @@ static const int pkmVictoryLen = sizeof(pkmVictoryMelody)/sizeof(pkmVictoryMelod
 static int      pkmMusicIdx     = 0;
 static uint32_t pkmMusicNextMs  = 0;
 static bool     pkmMusicPlaying = false;
-static uint8_t  pkmMusicTrack   = 0; // 0=overworld 1=battle 2=victory
+static uint8_t  pkmMusicTrack   = 0;
 
 static void pkmMusicStart(uint8_t track) {
   pkmMusicTrack   = track;
@@ -187,9 +181,7 @@ static void pkmMusicStart(uint8_t track) {
 }
 static void pkmMusicStop() { pkmMusicPlaying = false; if (buzzerEnabled) buzzerNoTone(); }
 
-// ==================== GAME OVER SFX ====================
-// Non-blocking descending "PWNED" melody (7 notes × 150ms = 1050ms)
-// RPG "power down" defeat — 6 wide-interval notes × 200ms = 1.2s, slow and dramatic
+// ==================== EFECTOS DE SONIDO: GAME OVER ====================
 static const uint16_t PKM_SFX_GO_NOTES[6] PROGMEM = { 523, 415, 330, 262, 208, 165 };
 static uint8_t  pkmGoSfxIdx    = 0;
 static uint32_t pkmGoSfxNextMs = 0;
@@ -234,65 +226,63 @@ static void pkmMusicTick() {
   pkmMusicIdx++;
 }
 
-// ==================== ENEMIES ====================
+// ==================== ENEMIGOS ====================
 #define PKM_MAX_ENEMIES 10
 
 struct PkmEnemy {
   const char* name;
   uint8_t     maxHp;
-  uint8_t     attack;   // base damage range [attack, attack+4]
-  uint8_t     defense;  // damage reduction
-  uint16_t    color;    // RGB565 sprite color
+  uint8_t     attack;   // rango de daño base [attack, attack+4]
+  uint8_t     defense;  // reducción de daño
+  uint16_t    color;    // color del sprite RGB565
   uint16_t    xpGiven;
-  uint8_t     minLevel; // minimum player level required to encounter this enemy
+  uint8_t     minLevel; // nivel mínimo del jugador para encontrar este enemigo
 };
 
-// Security software enemies — themed as corporate defenders
-// Fields: name, HP, ATK, DEF, color, XP, minLevel
 static const PkmEnemy pkmEnemies[PKM_MAX_ENEMIES] = {
-  {"AVAST",        30,  7,  7, 0x07FF, 14, 1},  // cyan   — lv1 starter
-  {"Win Defender", 36,  8,  8, 0x001F, 18, 1},  // blue   — lv1 starter
-  {"Malwarebytes", 32,  8,  7, 0x03E0, 16, 1},  // green  — lv1 starter
-  {"Kaspersky",    52, 10, 11, 0xF800, 28, 2},  // red    — unlocks lv2
-  {"Fortinet",     65, 12, 13, 0xF800, 34, 3},  // red    — unlocks lv3
-  {"CrowdStrike",  68, 13, 13, 0xFC00, 38, 4},  // yellow — unlocks lv4
-  {"SentinelOne",  66, 13, 12, 0xF81F, 36, 4},  // magenta— unlocks lv4
-  {"Palo Alto",    72, 14, 15, 0xFD20, 42, 5},  // orange — unlocks lv5
-  {"Check Point",  75, 15, 15, 0xFFC0, 48, 6},  // gold   — unlocks lv6
-  {"Cisco ASA",   100, 20, 19, 0x07E0, 85, 8},  // green  — unlocks lv8 (final boss)
+  {"AVAST",        30,  7,  7, 0x07FF, 14, 1},
+  {"Win Defender", 36,  8,  8, 0x001F, 18, 1},
+  {"Malwarebytes", 32,  8,  7, 0x03E0, 16, 1},
+  {"Kaspersky",    52, 10, 11, 0xF800, 28, 2},
+  {"Fortinet",     65, 12, 13, 0xF800, 34, 3},
+  {"CrowdStrike",  68, 13, 13, 0xFC00, 38, 4},
+  {"SentinelOne",  66, 13, 12, 0xF81F, 36, 4},
+  {"Palo Alto",    72, 14, 15, 0xFD20, 42, 5},
+  {"Check Point",  75, 15, 15, 0xFFC0, 48, 6},
+  {"Cisco ASA",   100, 20, 19, 0x07E0, 85, 8},
 };
 
-// Hacker moves (player attacks)
+// Movimientos del Hacker (ataques del jugador)
 #define PKM_MOVES 4
 struct PkmMove {
   const char* name;
-  uint8_t     power;   // base damage
-  uint8_t     pp;      // uses (max)
+  uint8_t     power;   // daño base
+  uint8_t     pp;      // usos (máximo)
   uint16_t    color;
 };
 
 static const PkmMove pkmMoves[PKM_MOVES] = {
-  {"SQL Inject",  12,  15, 0xFFE0},  // yellow
-  {"0-day",       25,   4, 0xF800},  // cyan  — high power, few uses
-  {"Exploit Kit", 18,   8, 0xF81F},  // magenta
-  {"Port Scan",    8,  20, 0x07FF},  // red   — low power, many uses
+  {"SQL Inject",  12,  15, 0xFFE0},
+  {"0-day",       25,   4, 0xF800},
+  {"Exploit Kit", 18,   8, 0xF81F},
+  {"Port Scan",    8,  20, 0x07FF},
 };
 
-// ==================== GAME STATE ====================
-#define PKM_SCREEN_TITLE      4  // intro/title screen (shown on first entry)
+// ==================== ESTADO DEL JUEGO ====================
+#define PKM_SCREEN_TITLE      4  // pantalla de intro/título (mostrada al entrar por primera vez)
 #define PKM_SCREEN_OVERWORLD  0
 #define PKM_SCREEN_BATTLE     1
 #define PKM_SCREEN_RESULT     2
-#define PKM_SCREEN_TERMINAL   3  // heal terminal dialog
+#define PKM_SCREEN_TERMINAL   3  // diálogo de terminal de curación
 
 static uint8_t  pkmScreen;
 static bool     pkmResultWon = false;  // para redibujar result al volver del screensaver
 
-// Overworld state
-static uint8_t  pkmMapIdx;           // current map (0=Forest 1=Desert 2=Snow 3=Island)
-static int16_t  pkmPX, pkmPY;        // player tile position
-static int8_t   pkmFacing;           // 0=down 1=up 2=left 3=right
-static uint8_t  pkmStepCount;        // steps since last encounter check
+// Estado del overworld
+static uint8_t  pkmMapIdx;           // mapa actual (0=Bosque 1=Desierto 2=Nieve 3=Isla)
+static int16_t  pkmPX, pkmPY;        // posición del jugador en tiles
+static int8_t   pkmFacing;           // 0=abajo 1=arriba 2=izquierda 3=derecha
+static uint8_t  pkmStepCount;        // pasos desde la última verificación de encuentro
 static uint16_t pkmXP;
 static uint8_t  pkmLevel;
 static uint8_t  pkmHP, pkmMaxHP;
@@ -303,35 +293,34 @@ static uint32_t pkmLastMoveMs;
 static bool     pkmGameOver;
 static bool     pkmGameWon;
 
-// Survival time + rank
-static uint32_t pkmStartMs;        // millis() when game started (overworld entry)
-static uint32_t pkmSurvivedSecs;   // calculated at game end
-static uint8_t  pkmBestRank;       // 0-5, persisted in flash
+// Tiempo de supervivencia + rango
+static uint32_t pkmStartMs;        // millis() al inicio de la partida (entrada al overworld)
+static uint32_t pkmSurvivedSecs;   // calculado al finalizar la partida
+static uint8_t  pkmBestRank;       // 0-5, persistido en flash
 
-// Camera
+// Cámara
 static int16_t  pkmCamX, pkmCamY;
 
-// Battle state
-static uint8_t  pkmBattleEnemyIdx;   // index into pkmEnemies[]
+// Estado de batalla
+static uint8_t  pkmBattleEnemyIdx;   // índice en pkmEnemies[]
 static uint8_t  pkmEnemyHP;
-static uint8_t  pkmBattlePhase;      // 0=player choose 1=player anim 2=enemy anim 3=check
-static uint8_t  pkmBattleCursor;     // selected move (0-3)
-static char     pkmBattleMsg[48];    // message buffer
-static bool     pkmBattleMsg2;       // second message line shown
-static uint32_t pkmBattleDelayMs;    // wait before advancing phase
-static bool     pkmBattlePlayerHurt; // flash effect
+static uint8_t  pkmBattlePhase;
+static uint8_t  pkmBattleCursor;     // movimiento seleccionado (0-3)
+static char     pkmBattleMsg[48];    // buffer de mensaje
+static bool     pkmBattleMsg2;       // segunda línea de mensaje mostrada
+static uint32_t pkmBattleDelayMs;    // espera antes de avanzar de fase
+static bool     pkmBattlePlayerHurt; // efecto de parpadeo
 static bool     pkmBattleEnemyHurt;
 static bool     pkmBattleOver;
 static bool     pkmBattleWon;
 static uint8_t  pkmBattleAnimFrame;
 static uint32_t pkmBattleAnimMs;
 
-// Defeated enemies tracking (for win condition)
-static uint16_t pkmDefeatedMask;   // bitmask of enemy indices defeated at least once
-#define PKM_WIN_MASK  ((1<<PKM_MAX_ENEMIES)-1)   // defeat all 10 once
+// Seguimiento de enemigos derrotados (para condición de victoria)
+static uint16_t pkmDefeatedMask;   // máscara de bits de índices de enemigos derrotados al menos una vez
+#define PKM_WIN_MASK  ((1<<PKM_MAX_ENEMIES)-1)   // derrotar a los 10 al menos una vez
 
-// ==================== LEVEL TABLE ====================
-// XP needed to reach each level (1-10)
+// ==================== TABLA DE NIVELES ====================
 static const uint16_t pkmXPTable[10] PROGMEM = {
   0, 20, 45, 80, 130, 200, 290, 400, 540, 720
 };
@@ -342,15 +331,15 @@ static uint8_t pkmXPtoLevel(uint16_t xp) {
   return 1;
 }
 
-// ==================== RANK SYSTEM ====================
-// Rank based on survival time (seconds)
+// ==================== SISTEMA DE RANGOS ====================
+// Rango basado en el tiempo de supervivencia (segundos)
 static uint8_t pkmXPToRank(uint16_t xp) {
-  if (xp <  50) return 0;  // SCRIPT KIDDIE
-  if (xp < 150) return 1;  // NOOB HACKER
-  if (xp < 300) return 2;  // GREY HAT
-  if (xp < 500) return 3;  // BLACK HAT
-  if (xp < 720) return 4;  // ELITE HACKER
-  return 5;                 // LEGENDARY (max XP, lv10)
+  if (xp <  50) return 0;
+  if (xp < 150) return 1;
+  if (xp < 300) return 2;
+  if (xp < 500) return 3;
+  if (xp < 720) return 4;
+  return 5;
 }
 static const char* pkmRankName(uint8_t rank) {
   switch(rank) {
@@ -364,12 +353,12 @@ static const char* pkmRankName(uint8_t rank) {
 }
 static uint16_t pkmRankColor(uint8_t rank) {
   switch(rank) {
-    case 0: return 0x8410;  // grey
-    case 1: return 0x07FF;  // cyan
-    case 2: return 0xFFE0;  // yellow
-    case 3: return 0xF800;  // red
-    case 4: return 0xFD20;  // orange
-    default: return 0xF81F; // magenta — legendary
+    case 0: return 0x8410;
+    case 1: return 0x07FF;
+    case 2: return 0xFFE0;
+    case 3: return 0xF800;
+    case 4: return 0xFD20;
+    default: return 0xF81F;
   }
 }
 static void pkmLoadBestRank() {
@@ -387,14 +376,14 @@ static void pkmSaveBestRank(uint8_t rank) {
 }
 
 static uint8_t pkmLevelToMaxHP(uint8_t lv) {
-  return 20 + lv * 5;  // 25 HP at lv1 → 70 HP at lv10
+  return 20 + lv * 5;
 }
 
 static uint8_t pkmLevelToAtk(uint8_t lv) {
-  return 3 + lv * 2;   // modifier added to move power
+  return 3 + lv * 2;
 }
 
-// ==================== MAP HELPERS ====================
+// ==================== UTILIDADES DE MAPA ====================
 static uint8_t pkmMapAt(int tx, int ty) {
   if (tx<0||tx>=PKM_MAP_W||ty<0||ty>=PKM_MAP_H) return 1;
   switch(pkmMapIdx) {
@@ -407,7 +396,7 @@ static uint8_t pkmMapAt(int tx, int ty) {
 }
 static bool pkmPassable(int tx, int ty) {
   uint8_t t = pkmMapAt(tx, ty);
-  return t==0 || t==3 || t==4;  // portal tile is walkable
+  return t==0 || t==3 || t==4;  // el tile de portal es transitable
 }
 static bool pkmIsEncounterTile(int tx, int ty) {
   return pkmMapAt(tx, ty) == 0;
@@ -419,13 +408,13 @@ static bool pkmIsPortal(int tx, int ty) {
   return pkmMapAt(tx, ty) == 4;
 }
 
-// ==================== CAMERA ====================
+// ==================== CÁMARA ====================
 static void pkmUpdateCamera() {
   pkmCamX = 0;
   pkmCamY = 0;
 }
 
-// ==================== TILE RENDERER ====================
+// ==================== RENDERIZADOR DE TILES ====================
 __attribute__((optimize("O3")))
 static void pkmDrawTile(int tx, int ty) {
   int sx = tx * PKM_TDRAW - pkmCamX;
@@ -437,11 +426,10 @@ static void pkmDrawTile(int tx, int ty) {
   int TS = PKM_TDRAW;
   uint8_t h = (uint8_t)(tx*5+ty*7);
 
-  // Tile 0: open walkable ground — style per map
   if (t == 0) {
     switch(pkmMapIdx) {
       default:
-      case 0: { // Forest — lush grass
+      case 0: {
         uint16_t g1=0x0500, g2=0x0580, g3=0x06A0;
         tft.fillRect(sx, sy, TS, TS, g1);
         for (int i=0;i<TS;i+=3) {
@@ -457,48 +445,42 @@ static void pkmDrawTile(int tx, int ty) {
         if ((h&7)==6) tft.drawPixel(sx+3,sy+8,0xF81F);
         break;
       }
-      case 1: { // Desert — sandy dunes
+      case 1: {
         uint16_t s1=0xC600, s2=0xD640, s3=0xE6A0;
         tft.fillRect(sx, sy, TS, TS, s1);
         if ((tx+ty)&1) { tft.fillRect(sx+2,sy+2,TS-4,TS-4,s2); }
         else           { tft.fillRect(sx+1,sy+1,TS-2,4,s3); }
-        // Ripple lines (wind pattern)
         if ((h&3)==0) tft.drawFastHLine(sx+1,sy+5,TS-2,s3);
         if ((h&3)==1) tft.drawFastHLine(sx+2,sy+8,TS-4,s2);
-        // Tiny pebble
         if ((h&7)==4) tft.drawPixel(sx+4,sy+6,0x8400);
         break;
       }
-      case 2: { // Snow — icy ground
+      case 2: {
         uint16_t w1=0xEF7D, w2=0xF79E, w3=0xFFFF;
         tft.fillRect(sx, sy, TS, TS, w1);
         if ((tx+ty)&1) tft.fillRect(sx+2,sy+2,TS-4,TS-4,w2);
-        // Snow sparkle
         if ((h&7)==2) tft.drawPixel(sx+3,sy+3,w3);
         if ((h&7)==5) tft.drawPixel(sx+8,sy+7,w3);
-        // Icy crack lines
         if ((h&3)==0) tft.drawFastHLine(sx,sy+6,TS,0xC71C);
         break;
       }
-      case 3: { // Island — tropical sand
+      case 3: {
         uint16_t b1=0xD6C0, b2=0xE740, b3=0xFFC0;
         tft.fillRect(sx, sy, TS, TS, b1);
         if ((tx+ty)&1) tft.fillRect(sx+2,sy+2,TS-4,TS-4,b2);
-        // Shell/pebble detail
         if ((h&7)==1) { tft.fillRect(sx+4,sy+5,3,2,b3); tft.drawRect(sx+4,sy+5,3,2,0xC600); }
-        if ((h&7)==4) tft.drawPixel(sx+7,sy+3,0xFFFF); // sparkle
+        if ((h&7)==4) tft.drawPixel(sx+7,sy+3,0xFFFF);
         break;
       }
     }
     return;
   }
 
-  // Tile 1: impassable wall — style per map
   if (t == 1) {
     uint8_t hh = (uint8_t)(tx*7+ty*11);
     switch(pkmMapIdx) {
       default:
-      case 0: { // Forest — dense tree
+      case 0: {
         uint16_t shadow=0x0200, dark=(hh&1)?0x0340:0x0280, mid=(hh&2)?0x03A0:0x0360, lite=(hh&4)?0x04A0:0x0440;
         tft.fillRect(sx,sy,TS,TS,shadow);
         tft.fillRect(sx+1,sy,TS-2,TS,dark); tft.fillRect(sx,sy+1,TS,TS-2,dark);
@@ -510,48 +492,39 @@ static void pkmDrawTile(int tx, int ty) {
         tft.drawRect(sx,sy,TS,TS,0x0180);
         break;
       }
-      case 1: { // Desert — cactus
+      case 1: { // Desierto
         uint16_t sand=0xC600, cactus=0x0480, cactusL=0x0600;
         tft.fillRect(sx,sy,TS,TS,sand);
-        // Cactus trunk
         tft.fillRect(sx+TS/2-2,sy+2,4,TS-3,cactus);
         tft.fillRect(sx+TS/2-1,sy+3,2,TS-4,cactusL);
-        // Arms
         tft.fillRect(sx+2,sy+4,TS/2-2,3,cactus);
         tft.fillRect(sx+2,sy+2,3,4,cactus);
         tft.fillRect(sx+TS/2+2,sy+6,TS/2-3,3,cactus);
         tft.fillRect(sx+TS-4,sy+4,3,4,cactus);
-        // Needle tips
         tft.drawPixel(sx+2,sy+2,(uint16_t)0xFFFF);
         tft.drawPixel(sx+TS-4,sy+4,(uint16_t)0xFFFF);
         break;
       }
-      case 2: { // Snow — snowdrift / ice boulder
+      case 2: { // Nieve
         uint16_t snow=0xFFFF, ice=0x8C9F, shadow2=0x6B5A;
         tft.fillRect(sx,sy,TS,TS,ice);
-        // Rounded drift shape
         tft.fillRect(sx+1,sy+3,TS-2,TS-4,snow);
         tft.fillRect(sx+2,sy+1,TS-4,4,snow);
         tft.fillRect(sx+4,sy,TS-8,2,snow);
-        // Shadow under
         tft.drawFastHLine(sx,sy+TS-1,TS,shadow2);
         tft.drawFastVLine(sx+TS-1,sy+1,TS-1,shadow2);
-        // Ice sparkle
         tft.drawPixel(sx+3,sy+2,(uint16_t)0x07FF);
         tft.drawPixel(sx+TS-4,sy+4,(uint16_t)0x07FF);
         break;
       }
-      case 3: { // Island — palm tree
+      case 3: { // Isla
         uint16_t trunk=0x8220, frond=0x0480, frondL=0x06A0, sand=0xD6C0;
         tft.fillRect(sx,sy,TS,TS,sand);
-        // Trunk (slightly curved: offset by 1 midway)
         tft.fillRect(sx+TS/2-1,sy+5,2,TS-5,trunk);
         tft.fillRect(sx+TS/2,  sy+3,2,4,trunk);
-        // Fronds (top canopy)
         tft.fillRect(sx+1,sy,TS-2,4,frond);
         tft.fillRect(sx,sy+1,TS,3,frond);
         tft.fillRect(sx+2,sy+1,TS-4,4,frondL);
-        // Coconuts
         tft.fillRect(sx+TS/2-2,sy+4,2,2,(uint16_t)0x8220);
         tft.fillRect(sx+TS/2+1,sy+5,2,2,(uint16_t)0x8220);
         tft.drawRect(sx,sy,TS,TS,0x4100);
@@ -561,11 +534,10 @@ static void pkmDrawTile(int tx, int ty) {
     return;
   }
 
-  // Tile 3: healing spot — style per map
   if (t == 3) {
     switch(pkmMapIdx) {
       default:
-      case 0: { // Forest — glowing cyan spring
+      case 0: {
         tft.fillRect(sx,sy,TS,TS,0x0480);
         tft.fillRect(sx+1,sy+1,TS-2,TS-2,0x0013);
         tft.fillRect(sx+2,sy+2,TS-4,TS-4,0x0237);
@@ -577,7 +549,7 @@ static void pkmDrawTile(int tx, int ty) {
         tft.fillRect(sx+TS/2-1,sy+TS/2-1,3,3,0xFFFF);
         break;
       }
-      case 1: { // Desert — golden oasis
+      case 1: {
         tft.fillRect(sx,sy,TS,TS,0x0540);
         tft.fillRect(sx+1,sy+1,TS-2,TS-2,0x0013);
         tft.fillRect(sx+2,sy+2,TS-4,TS-4,0x024F);
@@ -586,11 +558,10 @@ static void pkmDrawTile(int tx, int ty) {
         tft.drawFastHLine(sx+3,sy+TS/2,TS-6,0x07FF);
         tft.drawFastVLine(sx+TS/2,sy+3,TS-6,0x07FF);
         tft.fillRect(sx+TS/2-1,sy+TS/2-1,3,3,0xFFFF);
-        // Palm shadow
         tft.drawFastVLine(sx+TS/2,sy,3,0x0480);
         break;
       }
-      case 2: { // Snow — steaming hot spring
+      case 2: {
         tft.fillRect(sx,sy,TS,TS,0x4A5F);
         tft.fillRect(sx+1,sy+1,TS-2,TS-2,0x8010);
         tft.fillRect(sx+2,sy+2,TS-4,TS-4,0xF810);
@@ -599,17 +570,15 @@ static void pkmDrawTile(int tx, int ty) {
         tft.drawFastHLine(sx+3,sy+TS/2,TS-6,0xFFFF);
         tft.drawFastVLine(sx+TS/2,sy+3,TS-6,0xFFFF);
         tft.fillRect(sx+TS/2-1,sy+TS/2-1,3,3,0xFFFF);
-        // Steam dots
         tft.drawPixel(sx+3,sy,0xC638); tft.drawPixel(sx+8,sy+1,0xC638);
         break;
       }
-      case 3: { // Island — coconut well / spring
+      case 3: {
         tft.fillRect(sx,sy,TS,TS,0xD6C0);
         tft.fillRect(sx+2,sy+2,TS-4,TS-4,0x0013);
         tft.fillRect(sx+3,sy+3,TS-6,TS-6,0x024F);
         tft.drawRect(sx+2,sy+2,TS-4,TS-4,0x07FF);
         tft.fillRect(sx+TS/2-1,sy+TS/2-1,3,3,0xFFFF);
-        // Coconut
         tft.fillRect(sx+1,sy,2,2,0x8220);
         tft.fillRect(sx+TS-3,sy,2,2,0x8220);
         break;
@@ -618,7 +587,6 @@ static void pkmDrawTile(int tx, int ty) {
     return;
   }
 
-  // Tile 4: portal — glowing warp gate (same look on all maps)
   if (t == 4) {
     uint32_t ms = millis();
     uint8_t pulse = (uint8_t)((ms >> 4) & 0x1F); // 0..31
@@ -627,90 +595,79 @@ static void pkmDrawTile(int tx, int ty) {
     tft.drawRect(sx,sy,TS,TS,0xF81F);
     tft.drawRect(sx+1,sy+1,TS-2,TS-2,0x8010);
     tft.fillRect(sx+2,sy+2,TS-4,TS-4,inner);
-    // Arrow pointing right if on east border, left if west border
     uint16_t arr = 0x0000;
-    if (tx <= 1) { // west portal — arrow points left
+    if (tx <= 1) { // portal oeste — flecha apunta a la izquierda
       tft.fillRect(sx+2,sy+TS/2-1,TS-4,2,arr);
       tft.fillRect(sx+2,sy+TS/2-2,3,4,arr);
-    } else {       // east portal — arrow points right
+    } else {       // portal este — flecha apunta a la derecha
       tft.fillRect(sx+2,sy+TS/2-1,TS-4,2,arr);
       tft.fillRect(sx+TS-5,sy+TS/2-2,3,4,arr);
     }
     return;
   }
 
-  // Fallback
+  // Fallback (tile desconocido)
   uint16_t bgCol = pgm_read_word(&pkmMapBgColor[pkmMapIdx < PKM_NUM_MAPS ? pkmMapIdx : 0]);
   tft.fillRect(sx, sy, TS, TS, bgCol);
 }
 
-// ==================== PLAYER SPRITE ====================
-// 10x14 top-down hacker sprite with hoodie, backpack, directional facing
-
-// 10x14 top-down hacker sprite with hoodie, backpack, directional facing
+// ==================== SPRITE DEL JUGADOR ====================
 __attribute__((optimize("O3")))
 static void pkmDrawPlayer(int sx, int sy, bool walking) {
   busForTFT();
-  uint16_t skin  = 0xFD20;  // warm skin
-  uint16_t hair  = 0x1082;  // very dark hair
-  uint16_t hood  = 0x2A3F;  // dark teal hoodie
-  uint16_t hoodH = 0x3A5F;  // hoodie highlight
-  uint16_t pack  = 0x6B4D;  // grey backpack
-  uint16_t packH = 0x8C71;  // backpack highlight
-  uint16_t legs  = 0x2104;  // dark jeans
-  uint16_t shoe  = 0x18C3;  // shoes
-  uint16_t scrn  = 0x07FF;  // laptop/device cyan glow
+  uint16_t skin  = 0xFD20;  // piel cálida
+  uint16_t hair  = 0x1082;  // cabello muy oscuro
+  uint16_t hood  = 0x2A3F;  // sudadera verde azulado oscuro
+  uint16_t hoodH = 0x3A5F;  // brillo de la sudadera
+  uint16_t pack  = 0x6B4D;  // mochila gris
+  uint16_t packH = 0x8C71;  // brillo de la mochila
+  uint16_t legs  = 0x2104;  // jeans oscuros
+  uint16_t shoe  = 0x18C3;  // zapatos
+  uint16_t scrn  = 0x07FF;  // brillo cian de laptop/dispositivo
   uint16_t outl  = 0x0000;
 
-  int L = sx-5, T = sy-7; // 10 wide x 14 tall, centered
+  int L = sx-5, T = sy-7; // 10 de ancho x 14 de alto, centrado
 
-  // === HEAD (6x5 centered) ===
-  tft.fillRect(L+2, T,   6, 1, hair);          // hair top row
-  tft.fillRect(L+2, T+1, 6, 1, hair);          // hair 2nd row
-  tft.fillRect(L+1, T+2, 8, 3, skin);          // face
-  tft.fillRect(L+2, T+1, 2, 2, hair);          // hair left side
-  tft.fillRect(L+6, T+1, 2, 2, hair);          // hair right side
-  // Eyes (direction-dependent)
-  if (pkmFacing == 0) { // facing down
+  tft.fillRect(L+2, T,   6, 1, hair);
+  tft.fillRect(L+2, T+1, 6, 1, hair);
+  tft.fillRect(L+1, T+2, 8, 3, skin);
+  tft.fillRect(L+2, T+1, 2, 2, hair);
+  tft.fillRect(L+6, T+1, 2, 2, hair);
+  if (pkmFacing == 0) {
     tft.drawPixel(L+3, T+3, 0x0000);
     tft.drawPixel(L+6, T+3, 0x0000);
-    tft.drawPixel(L+3, T+4, skin);  // mouth hint
+    tft.drawPixel(L+3, T+4, skin);  // indicio de boca
     tft.drawPixel(L+4, T+4, 0x9800);
     tft.drawPixel(L+5, T+4, skin);
-  } else if (pkmFacing == 1) { // facing up — show back of head
+  } else if (pkmFacing == 1) {
     tft.fillRect(L+2, T,   6, 5, hair);
-  } else { // side facing — one eye
+  } else {
     tft.drawPixel(pkmFacing==3 ? L+6 : L+3, T+3, 0x0000);
   }
 
-  // === HOODIE BODY (10x5) ===
   tft.fillRect(L,   T+5, 10, 5, hood);
-  tft.fillRect(L+1, T+5,  8, 2, hoodH);       // shoulder highlight
+  tft.fillRect(L+1, T+5,  8, 2, hoodH);
   tft.drawRect(L,   T+5, 10, 5, outl);
-  // Hood string
   tft.drawPixel(L+4, T+6, 0xFFFF);
   tft.drawPixel(L+5, T+6, 0xFFFF);
 
-  // === BACKPACK (visible when facing down or side) ===
-  if (pkmFacing != 1) { // not when walking away (up)
+  if (pkmFacing != 1) {
     tft.fillRect(L+7, T+5, 3, 5, pack);
     tft.fillRect(L+8, T+6, 1, 3, packH);
     tft.drawRect(L+7, T+5, 3, 5, outl);
   }
 
-  // === LAPTOP GLOW (facing down: device in front) ===
   if (pkmFacing == 0) {
     tft.fillRect(L+2, T+8, 5, 3, 0x1082);
     tft.fillRect(L+3, T+8, 3, 2, scrn);
     tft.drawRect(L+2, T+8, 5, 3, outl);
   }
 
-  // === LEGS (walk animation) ===
   if (walking) {
     tft.fillRect(L+2, T+10, 2, 3, legs);
     tft.fillRect(L+6, T+10, 2, 3, legs);
-    tft.fillRect(L+2, T+12, 2, 2, shoe);       // left shoe forward
-    tft.fillRect(L+5, T+11, 2, 2, shoe);       // right shoe back
+    tft.fillRect(L+2, T+12, 2, 2, shoe);
+    tft.fillRect(L+5, T+11, 2, 2, shoe);
   } else {
     tft.fillRect(L+2, T+10, 2, 3, legs);
     tft.fillRect(L+5, T+10, 2, 3, legs);
@@ -718,11 +675,9 @@ static void pkmDrawPlayer(int sx, int sy, bool walking) {
     tft.fillRect(L+5, T+12, 2, 1, shoe);
   }
 
-  // Shadow dot under feet
   tft.drawFastHLine(L+2, T+14, 6, 0x0200);
 }
 
-// Erase player by redrawing underlying tiles
 static void pkmErasePlayer() {
   int tx0=(int)(pkmPX*PKM_TDRAW-4-pkmCamX)/PKM_TDRAW - 1;
   int ty0=(int)(pkmPY*PKM_TDRAW-5-pkmCamY)/PKM_TDRAW - 1;
@@ -735,16 +690,12 @@ static void pkmErasePlayer() {
       pkmDrawTile(tx,ty);
 }
 
-// ==================== ENEMY SPRITE (OVERWORLD) ====================
-// 8x8 roaming dot to indicate enemies — not used; encounters are random
-
-// ==================== HUD ====================
+// ==================== HUD (Interfaz) ====================
 static void pkmDrawHUD() {
   busForTFT();
   tft.fillRect(0, PKM_VP_H, 240, 240-PKM_VP_H, 0x0000);
   tft.drawFastHLine(0, PKM_VP_H, 240, COLDARK);
 
-  // HP bar
   tft.setTextSize(1);
   tft.setTextColor(0xBDF7);
   tft.setCursor(4, PKM_VP_H+4);
@@ -760,12 +711,10 @@ static void pkmDrawHUD() {
   tft.setCursor(88, PKM_VP_H+4);
   tft.print(pkmHP); tft.print("/"); tft.print(pkmMaxHP);
 
-  // Level + XP
   tft.setTextColor(COLNEON);
   tft.setCursor(140, PKM_VP_H+4);
   tft.print("LV:"); tft.print(pkmLevel);
 
-  // XP bar
   uint16_t xpThis = pgm_read_word(&pkmXPTable[pkmLevel>1?pkmLevel-1:0]);
   uint16_t xpNext = pgm_read_word(&pkmXPTable[pkmLevel<10?pkmLevel:9]);
   int xpRange = xpNext - xpThis;
@@ -775,7 +724,6 @@ static void pkmDrawHUD() {
   tft.fillRect(176, PKM_VP_H+5, xpFill, 7, COLDIM);
   tft.drawRect(176, PKM_VP_H+5, 50, 7, 0x4208);
 
-  // Second HUD row — map name + defeated count
   static const char* const pkmMapNames[PKM_NUM_MAPS] = {"Forest","Desert","Snow","Island"};
   static const uint16_t    pkmMapNameColors[PKM_NUM_MAPS] = {0x07E0, 0xFFE0, 0xAFFF, 0x07FF};
   uint8_t mi = pkmMapIdx < PKM_NUM_MAPS ? pkmMapIdx : 0;
@@ -796,26 +744,23 @@ static void pkmDrawHUD() {
   tft.print("XP:"); tft.setTextColor(0x07FF); tft.print(pkmXP);
 }
 
-// ==================== OVERWORLD DRAW ====================
+// ==================== DIBUJO DEL OVERWORLD ====================
 static void pkmDrawOverworld() {
   busForTFT();
   uint16_t bgCol = pgm_read_word(&pkmMapBgColor[pkmMapIdx < PKM_NUM_MAPS ? pkmMapIdx : 0]);
   tft.fillScreen(bgCol);
-  // Draw visible tiles
   int tx0=pkmCamX/PKM_TDRAW,     ty0=pkmCamY/PKM_TDRAW;
   int tx1=(pkmCamX+PKM_VP_W)/PKM_TDRAW+1, ty1=(pkmCamY+PKM_VP_H)/PKM_TDRAW+1;
   for(int ty=ty0;ty<=ty1;ty++)
     for(int tx=tx0;tx<=tx1;tx++)
       pkmDrawTile(tx,ty);
-  // Player at screen center
   int spx = pkmPX*PKM_TDRAW + PKM_TDRAW/2 - pkmCamX;
   int spy = pkmPY*PKM_TDRAW + PKM_TDRAW/2 - pkmCamY;
   pkmDrawPlayer(spx, spy, pkmWalkAnim);
   pkmDrawHUD();
 }
 
-// ==================== BATTLE SCENE ====================
-// Layout: top half=enemy area, middle=dialog box, bottom=move list
+// ==================== ESCENA DE BATALLA ====================
 
 static void pkmBattleDrawEnemyHP() {
   busForTFT();
@@ -825,7 +770,6 @@ static void pkmBattleDrawEnemyHP() {
   int filled = (pkmEnemyHP * barW) / (emaxhp > 0 ? emaxhp : 1);
   uint16_t col = (pkmEnemyHP > emaxhp/2) ? 0x07E0 :
                  (pkmEnemyHP > emaxhp/4) ? 0xFFE0 : 0xF800;
-  // Clear bar + numbers area inside enemy status box (top-left)
   tft.fillRect(26, 26, 84, 17, 0x0000);
   tft.fillRect(26, 26, barW, 7, 0x1882);
   tft.fillRect(26, 26, filled, 7, col);
@@ -844,7 +788,6 @@ static void pkmBattleDrawPlayerHP() {
   int filled = (pkmHP * barW) / (pkmMaxHP > 0 ? pkmMaxHP : 1);
   uint16_t col = (pkmHP > pkmMaxHP/2) ? 0x07E0 :
                  (pkmHP > pkmMaxHP/4) ? 0xFFE0 : 0xF800;
-  // Clear bar + numbers area inside player status box (bottom-right)
   tft.fillRect(150, 111, 84, 17, 0x0000);
   tft.fillRect(150, 111, barW, 7, 0x1882);
   tft.fillRect(150, 111, filled, 7, col);
@@ -857,56 +800,49 @@ static void pkmBattleDrawPlayerHP() {
   tft.print(pkmMaxHP);
 }
 
-// Enemy battle sprite — each enemy has a distinct visual style
+// Sprite de batalla del enemigo
 __attribute__((optimize("O3")))
 static void pkmDrawEnemySprite(bool hurt) {
   busForTFT();
   const PkmEnemy* e = &pkmEnemies[pkmBattleEnemyIdx];
   uint16_t col  = hurt ? (uint16_t)0xFFFF : e->color;
   uint16_t dark = ((col>>1)&0x7BEF);
-  uint16_t lite = col | 0x0020;  // slight highlight
+  uint16_t lite = col | 0x0020;  // leve brillo
   uint16_t outl = 0x0000;
-  uint16_t bg   = 0x0820;   // battle background colour
+  uint16_t bg   = 0x0820;   // color de fondo de batalla
 
-  int cx = 175, cy = 38;    // enemy sprite centre (top-right)
+  int cx = 175, cy = 38;    // centro del sprite del enemigo (arriba-derecha)
 
-  // Clear sprite area then restore grid texture so sprite doesn't sit on a flat patch
   tft.fillRect(cx-28, cy-26, 56, 64, bg);
   for (int gx=120; gx<240; gx+=20) if (gx>=cx-28 && gx<cx+28) tft.drawFastVLine(gx, cy-26, 64, 0x0440);
   for (int gy=10;  gy<79;  gy+=10) if (gy>=cy-26 && gy<cy+38) tft.drawFastHLine(cx-28, gy, 56, 0x0220);
   for (int sl=2;   sl<79;  sl+=4)  if (sl>=cy-26 && sl<cy+38) tft.drawFastHLine(cx-28, sl, 56, 0x0008);
 
-  // Draw a different shape per enemy index for visual variety
   switch(pkmBattleEnemyIdx) {
-    case 0: // AVAST — cyan shield shape
-    case 1: // Win Defender — blue shield
-    case 7: { // Kaspersky — red shield
-      // Classic antivirus shield
+    case 0:
+    case 1:
+    case 7: {
       tft.fillRect(cx-18, cy-22, 36, 28, outl);
       tft.fillRect(cx-16, cy-20, 32, 26, dark);
       tft.fillRect(cx-14, cy-18, 28, 24, col);
-      // Pointed bottom
+      // Parte inferior puntiaguda
       tft.fillRect(cx-10, cy+6,  20, 6, col);
       tft.fillRect(cx-6,  cy+12, 12, 6, col);
       tft.fillRect(cx-2,  cy+18, 4,  4, col);
       tft.fillRect(cx-10, cy+6,  20, 1, dark);
-      // Checkmark / cross inside
       tft.fillRect(cx-8, cy-10, 16, 3, dark);
       tft.fillRect(cx-6, cy-14, 3, 10, dark);
       tft.fillRect(cx+3, cy-16, 3, 14, dark);
-      // Outline
       tft.drawRect(cx-18, cy-22, 36, 28, lite);
       break;
     }
-    case 2: // Malwarebytes — green circle/gear shape
-    case 5: { // CrowdStrike — yellow gear
-      // Gear shape: square body + teeth stubs
+    case 2:
+    case 5: {
       tft.fillRect(cx-16, cy-16, 32, 32, outl);
       tft.fillRect(cx-14, cy-14, 28, 28, dark);
       tft.fillRect(cx-12, cy-12, 24, 24, col);
-      tft.fillRect(cx-8,  cy-8,  16, 16, dark);   // inner hole
-      tft.fillRect(cx-5,  cy-5,  10, 10, col);    // inner hub
-      // Gear teeth (4 sides)
+      tft.fillRect(cx-8,  cy-8,  16, 16, dark);
+      tft.fillRect(cx-5,  cy-5,  10, 10, col);
       tft.fillRect(cx-4,  cy-20, 8, 6, col);
       tft.fillRect(cx-4,  cy+14, 8, 6, col);
       tft.fillRect(cx-20, cy-4,  6, 8, col);
@@ -914,58 +850,46 @@ static void pkmDrawEnemySprite(bool hurt) {
       tft.drawRect(cx-16, cy-16, 32, 32, lite);
       break;
     }
-    case 3: // Fortinet — red fortress
-    case 8: { // Check Point — gold fortress
-      // Fortress / castle silhouette
+    case 3:
+    case 8: {
       tft.fillRect(cx-18, cy-10, 36, 26, dark);
       tft.fillRect(cx-16, cy-8,  32, 24, col);
-      // Battlements (top teeth)
       tft.fillRect(cx-18, cy-20, 8, 12, col);
       tft.fillRect(cx-4,  cy-20, 8, 12, col);
       tft.fillRect(cx+10, cy-20, 8, 12, col);
-      // Gate arch
       tft.fillRect(cx-5, cy+2, 10, 14, dark);
       tft.fillRect(cx-4, cy,   8,  4, dark);
-      // Arrow slits
       tft.fillRect(cx-14, cy-5, 2, 8, dark);
       tft.fillRect(cx+12, cy-5, 2, 8, dark);
       tft.drawRect(cx-18, cy-20, 36, 36, lite);
       break;
     }
-    case 4: // Palo Alto — orange NGFW pyramid/diamond
-    case 6: { // SentinelOne — magenta sentinel
-      // Diamond / pyramid shape
-      // Top triangle
+    case 4:
+    case 6: {
       for (int i=0;i<20;i++) {
         int w = (i*2)+2;
         if(w>40) w=40;
         tft.drawFastHLine(cx-w/2, cy-20+i, w, (i<10)?col:dark);
       }
-      // Scanline through centre
       tft.fillRect(cx-18, cy-2, 36, 4, lite);
       tft.fillRect(cx-12, cy-1, 24, 2, outl);
-      // Eye in middle
       tft.fillRect(cx-5, cy-4, 10, 8, outl);
       tft.fillRect(cx-3, cy-2,  6, 4, 0xFFFF);
       tft.fillRect(cx-1, cy-1,  2, 2, outl);
       tft.drawRect(cx-18, cy-20, 36, 36, lite);
       break;
     }
-    default: // Cisco ASA — green wall of fire
+    default:
     case 9: {
-      // Firewall: stacked brick pattern
       for (int row=0;row<4;row++) {
         int ry = cy-18+row*9;
         uint16_t bc = (row&1) ? col : dark;
         tft.fillRect(cx-18, ry, 36, 8, bc);
-        // Mortar lines
         tft.drawFastHLine(cx-18, ry, 36, outl);
-        // Brick offsets
         int off = (row&1) ? 9 : 0;
         tft.drawFastVLine(cx-18+off,   ry, 8, outl);
         tft.drawFastVLine(cx-18+off+18,ry, 8, outl);
       }
-      // Flame tips at top
       tft.fillRect(cx-16, cy-24, 4, 8, 0xF800);
       tft.fillRect(cx-7,  cy-26, 4, 10, 0xFD20);
       tft.fillRect(cx+3,  cy-24, 4, 8, 0xF800);
@@ -977,7 +901,7 @@ static void pkmDrawEnemySprite(bool hurt) {
 
 }
 
-// Player battle sprite — back-view hacker at desk with laptop, larger and more detailed
+// Sprite de batalla del jugador
 __attribute__((optimize("O3")))
 static void pkmDrawPlayerBattleSprite(bool hurt) {
   busForTFT();
@@ -985,75 +909,61 @@ static void pkmDrawPlayerBattleSprite(bool hurt) {
   uint16_t hair  = 0x1082;
   uint16_t hood  = 0x2A3F;
   uint16_t hoodH = 0x3A5F;
-  uint16_t hoodS = 0x1A2F;  // hoodie shadow
+  uint16_t hoodS = 0x1A2F;  // sombra de la sudadera
   uint16_t desk  = 0x4228;
   uint16_t lap   = 0x1082;
   uint16_t scrn  = 0x07FF;
-  uint16_t scrnG = 0x07E0;  // green terminal text glow
+  uint16_t scrnG = 0x07E0;  // brillo verde del texto en la terminal
   uint16_t outl  = 0x0000;
   uint16_t chair = 0x3186;
   uint16_t bg    = 0x0410;
 
   int cx=55, cy=136;
 
-  // Clear area then restore scanline texture so sprite blends with player field
   tft.fillRect(cx-30, cy-46, 60, 60, bg);
   for (int gl=83; gl<156; gl+=8)
     if (gl >= cy-46 && gl < cy+14)
       tft.drawFastHLine(cx-30, gl, 60, 0x0208);
 
-  // === CHAIR BACK ===
   tft.fillRect(cx-20, cy-44, 40, 32, chair);
   tft.fillRect(cx-18, cy-42, 36, 28, (uint16_t)0x4228);
   tft.drawRect(cx-20, cy-44, 40, 32, outl);
 
-  // === HEAD (back view, hoodie up) ===
-  tft.fillRect(cx-10, cy-44, 20, 16, hood);   // hoodie head cover
-  tft.fillRect(cx-8,  cy-42, 16, 12, hair);   // hair inside hood
-  tft.fillRect(cx-6,  cy-40, 12,  8, skin);   // skin patch (neck of head)
+  tft.fillRect(cx-10, cy-44, 20, 16, hood);
+  tft.fillRect(cx-8,  cy-42, 16, 12, hair);
+  tft.fillRect(cx-6,  cy-40, 12,  8, skin);
   tft.drawRect(cx-10, cy-44, 20, 16, outl);
-  // Hood shadow detail
   tft.drawFastVLine(cx-9, cy-42, 10, hoodS);
   tft.drawFastVLine(cx+8, cy-42, 10, hoodS);
 
-  // === HOODIE BODY ===
   tft.fillRect(cx-20, cy-28, 40, 18, hood);
-  tft.fillRect(cx-18, cy-28, 36,  6, hoodH);  // shoulder highlight
-  tft.fillRect(cx-20, cy-28,  5, 18, hoodS);  // left shadow
-  tft.fillRect(cx+15, cy-28,  5, 18, hoodS);  // right shadow
+  tft.fillRect(cx-18, cy-28, 36,  6, hoodH);
+  tft.fillRect(cx-20, cy-28,  5, 18, hoodS);
+  tft.fillRect(cx+15, cy-28,  5, 18, hoodS);
   tft.drawRect(cx-20, cy-28, 40, 18, outl);
-  // Kangaroo pocket
   tft.fillRect(cx-7, cy-18, 14, 6, hoodS);
   tft.drawRect(cx-7, cy-18, 14, 6, outl);
 
-  // === ARMS reaching to laptop ===
-  tft.fillRect(cx-24, cy-14, 10, 8, hood);    // left arm
-  tft.fillRect(cx+14, cy-14, 10, 8, hood);    // right arm
-  tft.fillRect(cx-22, cy-10,  6, 4, skin);    // left hand
-  tft.fillRect(cx+16, cy-10,  6, 4, skin);    // right hand
+  tft.fillRect(cx-24, cy-14, 10, 8, hood);
+  tft.fillRect(cx+14, cy-14, 10, 8, hood);
+  tft.fillRect(cx-22, cy-10,  6, 4, skin);
+  tft.fillRect(cx+16, cy-10,  6, 4, skin);
   tft.drawRect(cx-24, cy-14, 10, 8, outl);
   tft.drawRect(cx+14, cy-14, 10, 8, outl);
 
-  // === DESK ===
   tft.fillRect(cx-28, cy-6,  56, 5, desk);
-  tft.fillRect(cx-28, cy-7,  56, 2, (uint16_t)0x6B4D); // desk top edge highlight
+  tft.fillRect(cx-28, cy-7,  56, 2, (uint16_t)0x6B4D);
   tft.drawRect(cx-28, cy-6,  56, 5, outl);
 
-  // === LAPTOP ===
-  // Base
   tft.fillRect(cx-18, cy-14, 36, 10, lap);
   tft.fillRect(cx-17, cy-13, 34,  8, (uint16_t)0x2104);
-  // Screen (propped up)
   tft.fillRect(cx-16, cy-24, 32, 12, lap);
   tft.fillRect(cx-15, cy-23, 30, 10, scrn);
-  // Terminal text lines on screen
   tft.drawFastHLine(cx-13, cy-21, 10, scrnG);
   tft.drawFastHLine(cx-13, cy-19, 14, scrnG);
   tft.drawFastHLine(cx-13, cy-17, 8,  scrnG);
   tft.drawFastHLine(cx-13, cy-15, 12, scrnG);
-  // Cursor blink
   tft.fillRect(cx-1, cy-21, 2, 6, (uint16_t)0xFFFF);
-  // Screen highlight glare
   tft.drawFastHLine(cx+8, cy-23, 5, (uint16_t)0x8FFF);
   tft.drawRect(cx-16, cy-24, 32, 12, outl);
   tft.drawRect(cx-18, cy-14, 36, 10, outl);
@@ -1092,14 +1002,12 @@ static void pkmBattleDrawMoves() {
 
     tft.fillRect(mcol+1, mrow, 118, 15, bg);
     tft.drawRect(mcol,   mrow-1, 120, 17, bdr);
-    // Colour accent strip on left edge
     tft.fillRect(mcol+1, mrow, 3, 15, sel ? COLNEON : movCol);
 
     tft.setTextSize(1);
     tft.setTextColor(txt);
     tft.setCursor(mcol+8, mrow+4);
     tft.print(pkmMoves[i].name);
-    // PP counter
     uint16_t ppCol = pkmMovePP[i] > 0 ? (uint16_t)0x8410 : (uint16_t)0xF800;
     tft.setTextColor(ppCol);
     tft.setCursor(mcol+86, mrow+4);
@@ -1111,88 +1019,68 @@ static void pkmBattleDrawFull() {
   busForTFT();
   tft.fillScreen(0x0000);
 
-  // ── TOP HALF (y=0..78): Enemy field ─────────────────────────────────
-  // Background: dark tech blue across full width
   tft.fillRect(0, 0, 240, 79, 0x0820);
-  // Grid texture only on the RIGHT side (where enemy sprite stands)
   for (int gx=120; gx<240; gx+=20) tft.drawFastVLine(gx, 0, 79, 0x0440);
   for (int gy=10;  gy<79;  gy+=10) tft.drawFastHLine(120, gy, 120, 0x0220);
   for (int sl=2;   sl<79;  sl+=4)  tft.drawFastHLine(120, sl, 120, 0x0008);
 
-  // Divider between halves
   tft.drawFastHLine(0, 79, 240, COLDARK);
   tft.drawFastHLine(0, 80, 240, 0x0440);
 
-  // Enemy status box — TOP-LEFT (Pokémon style)
   const PkmEnemy* e = &pkmEnemies[pkmBattleEnemyIdx];
   tft.fillRect(2, 3, 112, 52, 0x0000);
   tft.drawRect(2, 3, 112, 52, 0x4208);
   tft.drawRect(3, 4, 110, 50, 0x1882);
-  // Name (max 12 chars so it never overlaps the level)
   tft.setTextSize(1);
   tft.setTextColor(0xFFFF);
   tft.setCursor(8, 10);
   { char nm[13]; snprintf(nm, sizeof(nm), "%s", e->name); tft.print(nm); }
-  // Level — right-aligned at x=84 so even 12-char names leave a gap
   tft.setTextColor(0x8410);
   tft.setCursor(84, 10);
   tft.print("LV");
   tft.setTextColor(0xBDF7);
   tft.print(e->maxHp / 5 + 2);
-  // Separator line
   tft.drawFastHLine(3, 21, 110, 0x2945);
-  // HP label
   tft.setTextColor(0x8410);
   tft.setCursor(8, 27);
   tft.print("HP");
 
   pkmBattleDrawEnemyHP();  // draws bar at (26,26) and numbers at (26,35)
 
-  // ── BOTTOM HALF (y=81..155): Player field ───────────────────────────
-  // Background: darker teal — matches player sprite clear color (0x0410)
   tft.fillRect(0, 81, 240, 75, 0x0410);
-  // Scanlines only on LEFT side (where player sprite stands)
   for (int gl=83; gl<156; gl+=8) tft.drawFastHLine(0, gl, 115, 0x0208);
   tft.drawRect(0, 81, 115, 75, COLDARK);
 
-  // Player status box — BOTTOM-RIGHT (Pokémon style)
   tft.fillRect(126, 87, 112, 56, 0x0000);
   tft.drawRect(126, 87, 112, 56, 0x4208);
   tft.drawRect(127, 88, 110, 54, 0x1882);
-  // Name
   tft.setTextSize(1);
   tft.setTextColor(0x07FF);
   tft.setCursor(132, 95);
   tft.print("HACKER");
-  // Level
   tft.setTextColor(0x8410);
   tft.setCursor(190, 95);
   tft.print("LV");
   tft.setTextColor(0xBDF7);
   tft.print(pkmLevel);
-  // Separator line
   tft.drawFastHLine(127, 106, 110, 0x2945);
-  // HP label
   tft.setTextColor(0x8410);
   tft.setCursor(132, 112);
   tft.print("HP");
 
   pkmBattleDrawPlayerHP();  // draws bar at (150,111) and numbers at (150,120)
 
-  // Sprites (drawn after backgrounds so they render on top)
   pkmDrawEnemySprite(false);
   pkmDrawPlayerBattleSprite(false);
 
-  // Dialog box
   char buf[48];
   snprintf(buf, sizeof(buf), "A wild %s appeared!", e->name);
   pkmBattleDrawMsg(buf, "Choose your attack!");
 
-  // Move list
   pkmBattleDrawMoves();
 }
 
-// ==================== TERMINAL DIALOG ====================
+// ==================== DIÁLOGO DE TERMINAL ====================
 static void pkmDrawTerminal() {
   busForTFT();
   tft.fillRect(20, 60, 200, 120, 0x0000);
@@ -1200,7 +1088,6 @@ static void pkmDrawTerminal() {
   tft.drawRect(21, 61, 198, 118, COLDARK);
 
   tft.setTextSize(1);
-  // Box center X = 20 + 200/2 = 120. Each char = 6px wide at textSize=1.
   tft.setTextColor(0x07FF);
   tft.setCursor(78, 70);   // "HEALING SPRING" 14*6=84 → 120-42=78
   tft.print("HEALING SPRING");
@@ -1234,43 +1121,35 @@ static void pkmDrawTerminal() {
   tft.print("OK or BACK to exit");
 }
 
-// ==================== WIN / GAME OVER SCREEN ====================
-// ==================== TITLE SCREEN ====================
+// ==================== PANTALLA DE TÍTULO ====================
 static void pkmDrawTitle() {
   busForTFT();
   tft.fillScreen(0x0000);
 
-  // Background scanlines
   for (int y = 0; y < 240; y += 6) tft.drawFastHLine(0, y, 240, 0x0820);
 
-  // Title box
   tft.fillRect(10, 18, 220, 58, 0x0000);
   tft.drawRect(10, 18, 220, 58, COLNEON);
   tft.drawRect(12, 20, 216, 54, 0x0440);
 
-  // Title text "HACKER MON"  — textSize=2 → 12px/char, 10 chars = 120px → x=(240-120)/2=60
   tft.setTextSize(2);
   tft.setTextColor(COLNEON);
   tft.setCursor(60, 30);
   tft.print("HACKER MON");
 
-  // Subtitle: ">> Pwn the Net <<" 17 chars × 6 = 102px → x = 120 - 51 = 69
   tft.setTextSize(1);
   tft.setTextColor(0x07FF);
   tft.setCursor(69, 58);
   tft.print(">> Pwn the Net <<");
 
-  // Best rank box
   tft.fillRect(20, 96, 200, 68, 0x0000);
   tft.drawRect(20, 96, 200, 68, 0x4208);
 
-  // "Best Rank:" 10 chars × 6 = 60px → x = 120 - 30 = 90
   tft.setTextSize(1);
   tft.setTextColor(0x8410);
   tft.setCursor(90, 104);
   tft.print("Best Rank:");
 
-  // Rank name — dynamic centering: nChars × 12px / 2
   const char* rname = pkmRankName(pkmBestRank);
   uint16_t    rcol  = pkmRankColor(pkmBestRank);
   tft.setTextSize(2);
@@ -1278,40 +1157,34 @@ static void pkmDrawTitle() {
   tft.setCursor(120 - (int)(strlen(rname) * 12) / 2, 116);
   tft.print(rname);
 
-  // Rank bar: 6 × 14px = 84px → x = 120 - 42 = 78
   int dotX = 78;
   for (uint8_t i = 0; i < 6; i++) {
     uint16_t c = (i <= pkmBestRank) ? pkmRankColor(i) : (uint16_t)0x2104;
     tft.fillRect(dotX + i*14, 146, 10, 6, c);
   }
 
-  // "Press OK to play" 16 chars × 6 = 96px → x = 120 - 48 = 72
   tft.setTextSize(1);
   tft.setTextColor(COLDIM);
   tft.setCursor(72, 182);
   tft.print("Press OK to play");
 
-  // "BACK = main menu" 16 chars × 6 = 96px → x = 120 - 48 = 72
   tft.setTextColor(0x4208);
   tft.setCursor(72, 196);
   tft.print("BACK = main menu");
 }
 
-// ==================== RESULT SCREEN ====================
+// ==================== PANTALLA DE RESULTADOS ====================
 static void pkmDrawResult(bool won) {
   busForTFT();
-  // Expanded box: y=62, height=122 → bottom at y=184
   tft.fillRect(16, 62, 208, 122, 0x0000);
   tft.drawRect(16, 62, 208, 122, won ? (uint16_t)COLNEON : (uint16_t)0xF800);
   tft.drawRect(18, 64, 204, 118, won ? (uint16_t)COLDIM  : (uint16_t)0xA000);
 
-  // PWNED! / GAME OVER  textSize=2 → 12px/char
   tft.setTextSize(2);
   tft.setTextColor(won ? (uint16_t)COLNEON : (uint16_t)0xF800);
-  if (won) { tft.setCursor(84, 72); tft.print("PWNED!"); }    //  6*12=72  → 120-36=84
-  else     { tft.setCursor(66, 72); tft.print("GAME OVER"); } //  9*12=108 → 120-54=66
+  if (won) { tft.setCursor(84, 72); tft.print("PWNED!"); }
+  else     { tft.setCursor(66, 72); tft.print("GAME OVER"); }
 
-  // Rank achieved
   uint8_t rank = pkmXPToRank(pkmXP);
   tft.setTextSize(1);
   tft.setTextColor(pkmRankColor(rank));
@@ -1322,7 +1195,6 @@ static void pkmDrawResult(bool won) {
   tft.setTextSize(1);
   tft.setTextColor(0xBDF7);
 
-  // Survived time
   uint32_t mm = pkmSurvivedSecs / 60;
   uint32_t ss = pkmSurvivedSecs % 60;
   char rbuf[32];
@@ -1330,19 +1202,17 @@ static void pkmDrawResult(bool won) {
   tft.setCursor(120 - (int)(strlen(rbuf)*6)/2, 110);
   tft.print(rbuf);
 
-  // Level + XP on same line
   snprintf(rbuf, sizeof(rbuf), "LV:%d  XP:%d", pkmLevel, pkmXP);
   tft.setCursor(120 - (int)(strlen(rbuf)*6)/2, 122);
   tft.print(rbuf);
 
-  // Defeated count
   uint8_t dc=0;
   for(int i=0;i<PKM_MAX_ENEMIES;i++) if(pkmDefeatedMask>>i&1) dc++;
   snprintf(rbuf, sizeof(rbuf), "Defeated: %d/%d", dc, PKM_MAX_ENEMIES);
   tft.setCursor(120 - (int)(strlen(rbuf)*6)/2, 134);
   tft.print(rbuf);
 
-  // New best rank indicator — shown if this run's rank equals the saved best
+  // Indicador de nuevo mejor rango — se muestra si el rango de esta partida iguala el guardado
   if (rank >= pkmBestRank) {
     tft.setTextColor(0xFFE0);
     tft.setCursor(120 - (int)(6*9)/2, 148);
@@ -1354,15 +1224,15 @@ static void pkmDrawResult(bool won) {
   tft.print("OK=retry  BACK=menu");
 }
 
-// ==================== MAP TRANSITION ====================
+// ==================== TRANSICIÓN DE MAPA ====================
 static void pkmDoPortal() {
-  // Flash effect
+  // Efecto de destello
   busForTFT();
   for (int i=0; i<3; i++) {
     tft.fillRect(0,0,PKM_VP_W,PKM_VP_H,0xFFFF); delay(60);
     tft.fillRect(0,0,PKM_VP_W,PKM_VP_H,0x0000); delay(60);
   }
-  // Advance map
+  // Avanzar al siguiente mapa
   PkmPortal dest;
   dest.mapIdx = pgm_read_byte (&pkmPortals[pkmMapIdx].mapIdx);
   dest.px     = (int8_t)pgm_read_byte(&pkmPortals[pkmMapIdx].px);
@@ -1374,7 +1244,7 @@ static void pkmDoPortal() {
   pkmDrawOverworld();
 }
 
-// ==================== INIT ====================
+// ==================== INICIALIZACIÓN ====================
 static void pkmInit() {
   pkmMapIdx = 0;
   pkmPX     = 10;
@@ -1395,7 +1265,7 @@ static void pkmInit() {
   pkmGameWon     = false;
   pkmDefeatedMask = 0;
   pkmSurvivedSecs = 0;
-  pkmStartMs     = millis();  // start survival timer
+  pkmStartMs     = millis();  // iniciar temporizador de supervivencia
   pkmScreen      = PKM_SCREEN_OVERWORLD;
   pkmBattlePhase = 0;
   pkmBattleCursor = 0;
@@ -1409,10 +1279,10 @@ static void drawHackerMon() {
   pkmDrawTitle();
 }
 
-// ==================== BATTLE LOGIC ====================
+// ==================== LÓGICA DE BATALLA ====================
 
-// Pick a random enemy available at the current player level
-// Uses minLevel field embedded in each PkmEnemy — impossible to get out of sync
+// Selecciona un enemigo aleatorio disponible para el nivel actual del jugador
+// Usa el campo minLevel integrado en cada PkmEnemy — imposible que se desincronice
 static uint8_t pkmPickEnemy() {
   uint8_t pool[PKM_MAX_ENEMIES];
   uint8_t pcount = 0;
@@ -1439,12 +1309,12 @@ static void pkmStartBattle(uint8_t enemyIdx) {
   pkmBattleDelayMs    = 0;
   pkmScreen = PKM_SCREEN_BATTLE;
   pkmMusicStop();
-  pkmMusicStart(1); // battle music
+  pkmMusicStart(1); // música de batalla
   pkmBattleDrawFull();
 }
 
 static uint8_t pkmRand8() {
-  // Simple LFSR-style using millis + XP
+  // LFSR simple usando millis + XP
   static uint8_t r = 42;
   r ^= (uint8_t)(millis()>>3);
   r ^= r<<3;
@@ -1453,12 +1323,12 @@ static uint8_t pkmRand8() {
   return r;
 }
 
-// Apply damage to enemy, handle KO
+// Aplicar daño al enemigo, gestionar KO
 static void pkmApplyMoveToEnemy(uint8_t moveIdx) {
   uint8_t power = pkmMoves[moveIdx].power;
   uint8_t atk   = pkmLevelToAtk(pkmLevel);
   uint8_t def   = pkmEnemies[pkmBattleEnemyIdx].defense;
-  // Damage = (power + atk + rand[0..4]) - def, min 1
+  // Daño = (power + atk + rand[0..4]) - def, mínimo 1
   uint8_t dmg = power + atk + (pkmRand8()&3);
   if (dmg > def+2) dmg -= def;
   else dmg = 1;
@@ -1470,21 +1340,21 @@ static void pkmApplyMoveToEnemy(uint8_t moveIdx) {
   } else {
     pkmEnemyHP -= dmg;
   }
-  // Flash enemy
+  // Parpadeo del enemigo
   pkmBattleEnemyHurt = true;
   pkmBattleAnimFrame = 0;
   pkmBattleAnimMs    = millis();
 
-  // Build message
+  // Construir mensaje
   snprintf(pkmBattleMsg, sizeof(pkmBattleMsg), "Hacker used %s!", pkmMoves[moveIdx].name);
   pkmBattleMsg2 = false;
 }
 
-// Enemy attacks player
+// El enemigo ataca al jugador
 static void pkmEnemyAttack() {
   uint8_t eatk = pkmEnemies[pkmBattleEnemyIdx].attack;
   uint8_t dmg  = eatk + (pkmRand8()&3);
-  // Player defense scales with level
+  // La defensa del jugador escala con el nivel
   uint8_t pdef = pkmLevel / 2;
   if (dmg > pdef+1) dmg -= pdef;
   else dmg = 1;
@@ -1507,7 +1377,7 @@ static void pkmEnemyAttack() {
   pkmBattleMsg2 = false;
 }
 
-// Called after battle win — award XP, check level up
+// Llamado tras ganar la batalla — otorgar XP, verificar subida de nivel
 static void pkmAwardXP() {
   uint8_t xpGain = pkmEnemies[pkmBattleEnemyIdx].xpGiven;
   if (pkmBattleEnemyIdx < PKM_MAX_ENEMIES) pkmDefeatedMask |= (1 << pkmBattleEnemyIdx);
@@ -1517,7 +1387,7 @@ static void pkmAwardXP() {
   if (newLevel > pkmLevel && newLevel <= 10) {
     pkmLevel  = newLevel;
     uint8_t newMax = pkmLevelToMaxHP(pkmLevel);
-    pkmHP    += (newMax - pkmMaxHP); // heal on level up
+    pkmHP    += (newMax - pkmMaxHP); // curar al subir de nivel
     pkmMaxHP  = newMax;
     if (pkmHP > pkmMaxHP) pkmHP = pkmMaxHP;
     snprintf(pkmBattleMsg, sizeof(pkmBattleMsg), "Level UP! Now LV %d!", pkmLevel);
@@ -1525,17 +1395,17 @@ static void pkmAwardXP() {
     snprintf(pkmBattleMsg, sizeof(pkmBattleMsg), "+%d XP! Enemy defeated!", xpGain);
   }
 
-  // Check all enemies defeated
+  // Verificar si todos los enemigos fueron derrotados
   if ((pkmDefeatedMask & PKM_WIN_MASK) == PKM_WIN_MASK) {
     pkmGameWon = true;
   }
 }
 
-// ==================== BATTLE TICK ====================
+// ==================== TICK DE BATALLA ====================
 static void pkmBattleTick(const ButtonsEdge& b) {
   uint32_t now = millis();
 
-  // Animate hurt flash
+  // Animar parpadeo de daño
   if (pkmBattleEnemyHurt || pkmBattlePlayerHurt) {
     if ((int32_t)(now - pkmBattleAnimMs) >= 120) {
       pkmBattleAnimFrame++;
@@ -1551,20 +1421,20 @@ static void pkmBattleTick(const ButtonsEdge& b) {
         if (pkmBattlePlayerHurt) pkmDrawPlayerBattleSprite(flash);
       }
     }
-    return; // wait for animation
+    return; // esperar animación
   }
 
-  // Phase 0: Player choosing move
+  // Fase 0: Jugador elige movimiento
   if (pkmBattlePhase == 0) {
     if (b.up)   { pkmBattleCursor=(pkmBattleCursor+2)%4; pkmBattleDrawMoves(); }
     if (b.down) { pkmBattleCursor=(pkmBattleCursor+2)%4; pkmBattleDrawMoves(); }
     if (b.ok) {
       pkmBattleCursor = (pkmBattleCursor+1)%4; // cycle right in 2-column layout
-      // actually: treat left=0/2, right=1/3 as columns; up/down changes row
+      // en realidad: tratar izq=0/2, der=1/3 como columnas; arriba/abajo cambia fila
       pkmBattleDrawMoves();
     }
     if (b.back) {
-      // BACK exits battle (flee) — full HP cost: take 5 damage
+      // BACK sale de la batalla (huir) — coste de HP completo: recibe 5 de daño
       if (pkmHP > 5) pkmHP -= 5; else pkmHP = 1;
       pkmMusicStop();
       pkmMusicStart(0);
@@ -1574,32 +1444,32 @@ static void pkmBattleTick(const ButtonsEdge& b) {
       return;
     }
 
-    // Check if ok was "confirm" — use left button as confirm
-    // UP/DOWN scroll cursor, BACK = flee, OK = navigate
-    // Use UP as "confirm attack" — intuitive for badge
+    // Verificar si ok fue "confirmar" — usar botón izquierdo como confirmar
+    // ARRIBA/ABAJO desplaza el cursor, BACK = huir, OK = navegar
+    // Usar ARRIBA como "confirmar ataque" — intuitivo para el badge
     if (b.up) {
-      // Already handled above, but we want UP to mean "confirm" on second press
-      // Simple: treat b.ok as left/right toggle and treat PUSH1PIN hold as confirm
+      // Ya gestionado arriba, pero queremos que ARRIBA signifique "confirmar" en segunda pulsación
+      // Simple: tratar b.ok como alternancia izquierda/derecha y PUSH1PIN mantenido como confirmar
     }
 
-    // Actually, let's map: UP=move cursor up, DOWN=cursor down, BACK=cursor left, OK=confirm
-    // Re-interpret: we have 2 rows x 2 cols grid
-    // Let's just use: UP/DOWN to cycle moves 0-3, OK to confirm, BACK to flee
+    // En definitiva, mapeo: ARRIBA=subir cursor, ABAJO=bajar cursor, BACK=huir, OK=confirmar
+    // Reinterpretación: rejilla de 2 filas x 2 columnas
+    // Simplemente: ARRIBA/ABAJO para ciclar movimientos 0-3, OK para confirmar, BACK para huir
     return;
   }
 
-  // Phase 1: player move resolving (wait for delay)
+  // Fase 1: resolviendo movimiento del jugador (esperar retardo)
   if (pkmBattlePhase == 1) {
     if ((int32_t)(now - pkmBattleDelayMs) < 0) return;
 
     if (pkmBattleOver) {
       if (pkmBattleWon) {
-        // Victory
+        // Victoria
         pkmAwardXP();
         pkmMusicStop();
-        pkmMusicStart(2); // victory jingle
+        pkmMusicStart(2); // jingle de victoria
         pkmBattleDrawMsg(pkmBattleMsg, "Press OK to continue");
-        pkmBattlePhase = 3; // wait for player ack
+        pkmBattlePhase = 3; // esperar confirmación del jugador
       } else {
         pkmBattleDrawMsg("You were defeated...", "Press OK or BACK");
         pkmBattlePhase = 3;
@@ -1607,7 +1477,7 @@ static void pkmBattleTick(const ButtonsEdge& b) {
       return;
     }
 
-    // Enemy's turn
+    // Turno del enemigo
     pkmEnemyAttack();
     pkmBattleDrawMsg(pkmBattleMsg, nullptr);
     pkmBattleDelayMs = now + 1200;
@@ -1615,7 +1485,7 @@ static void pkmBattleTick(const ButtonsEdge& b) {
     return;
   }
 
-  // Phase 2: enemy move resolving
+  // Fase 2: resolviendo movimiento del enemigo
   if (pkmBattlePhase == 2) {
     if ((int32_t)(now - pkmBattleDelayMs) < 0) return;
 
@@ -1625,14 +1495,14 @@ static void pkmBattleTick(const ButtonsEdge& b) {
       return;
     }
 
-    // Back to player turn
+    // Volver al turno del jugador
     pkmBattlePhase = 0;
     pkmBattleDrawMsg("What will you do?", "Choose your move:");
     pkmBattleDrawMoves();
     return;
   }
 
-  // Phase 3: waiting for acknowledgment after battle end
+  // Fase 3: esperando confirmación al final de la batalla
   if (pkmBattlePhase == 3) {
     if (b.ok || b.back) {
       pkmMusicStop();
@@ -1653,7 +1523,7 @@ static void pkmBattleTick(const ButtonsEdge& b) {
         pkmMusicStop();
         return;
       }
-      // Normal battle end — return to overworld
+      // Final de batalla normal — volver al overworld
       pkmMusicStart(0);
       pkmScreen = PKM_SCREEN_OVERWORLD;
       pkmUpdateCamera();
@@ -1663,14 +1533,13 @@ static void pkmBattleTick(const ButtonsEdge& b) {
   }
 }
 
-// ==================== OVERWORLD TICK ====================
-#define PKM_MOVE_DELAY 160   // ms between steps (smooth movement feel)
-#define PKM_ENCOUNTER_RATE 5  // 1 in N steps triggers encounter
+// ==================== TICK DEL OVERWORLD ====================
+#define PKM_MOVE_DELAY 160   // ms entre pasos (movimiento fluido)
+#define PKM_ENCOUNTER_RATE 5  // 1 de cada N pasos activa un encuentro
 
 static void pkmOverworldTick(const ButtonsEdge& b) {
   uint32_t now = millis();
 
-  // DOWN + BACK held together = exit to menu (like maze's pause combo)
   if (isPressed(PUSH2PIN) && isPressed(PUSH4PIN)) {
     pkmMusicStop();
     while (isPressed(PUSH2PIN) || isPressed(PUSH4PIN)) delay(10);
@@ -1678,54 +1547,45 @@ static void pkmOverworldTick(const ButtonsEdge& b) {
     return;
   }
 
-  // Throttle movement
   if ((int32_t)(now - pkmLastMoveMs) < PKM_MOVE_DELAY) return;
 
   int8_t dx=0, dy=0;
   bool moved = false;
 
-  if (isPressed(PUSH1PIN)) { dy=-1; pkmFacing=1; moved=true; } // UP    = north
-  if (isPressed(PUSH2PIN)) { dy=+1; pkmFacing=0; moved=true; } // DOWN  = south
-  if (isPressed(PUSH4PIN)) { dx=-1; pkmFacing=2; moved=true; } // OK    = west
-  if (isPressed(PUSH3PIN)) { dx=+1; pkmFacing=3; moved=true; } // BACK  = east
+  if (isPressed(PUSH1PIN)) { dy=-1; pkmFacing=1; moved=true; }
+  if (isPressed(PUSH2PIN)) { dy=+1; pkmFacing=0; moved=true; }
+  if (isPressed(PUSH4PIN)) { dx=-1; pkmFacing=2; moved=true; }
+  if (isPressed(PUSH3PIN)) { dx=+1; pkmFacing=3; moved=true; }
 
-  // Only apply one axis per tick for cleaner grid movement
   if (dx && dy) dy=0;
 
   if (moved) {
     int16_t nx = pkmPX + dx;
     int16_t ny = pkmPY + dy;
 
-    // Check passable
     if (nx>=0 && nx<PKM_MAP_W && ny>=0 && ny<PKM_MAP_H && pkmPassable(nx, ny)) {
-      // Erase player at old position
       pkmErasePlayer();
 
       pkmPX = nx;
       pkmPY = ny;
       pkmLastMoveMs = now;
 
-      // Toggle walk animation
       pkmWalkAnim = !pkmWalkAnim;
       pkmWalkAnimMs = now;
 
-      // Update camera
       int16_t oldCX = pkmCamX, oldCY = pkmCamY;
       pkmUpdateCamera();
 
       if (pkmCamX != oldCX || pkmCamY != oldCY) {
-        // Camera scrolled — full redraw
         pkmDrawOverworld();
         return;
       }
 
-      // Redraw player area
       int spx = pkmPX*PKM_TDRAW + PKM_TDRAW/2 - pkmCamX;
       int spy = pkmPY*PKM_TDRAW + PKM_TDRAW/2 - pkmCamY;
       pkmDrawPlayer(spx, spy, pkmWalkAnim);
       pkmDrawHUD();
 
-      // Terminal / healing spot check
       if (pkmIsTerminal(pkmPX, pkmPY)) {
         pkmHP = pkmMaxHP;
         for(int i=0;i<PKM_MOVES;i++) pkmMovePP[i] = pkmMoves[i].pp;
@@ -1734,19 +1594,16 @@ static void pkmOverworldTick(const ButtonsEdge& b) {
         return;
       }
 
-      // Portal check — warp to next map
       if (pkmIsPortal(pkmPX, pkmPY)) {
         pkmDoPortal();
         return;
       }
 
-      // Random encounter on grass tiles
       if (pkmIsEncounterTile(pkmPX, pkmPY)) {
         pkmStepCount++;
         uint8_t roll = pkmRand8();
         if (pkmStepCount >= 3 && (roll % PKM_ENCOUNTER_RATE) == 0) {
           pkmStepCount = 0;
-          // Flash screen white for encounter effect
           busForTFT();
           tft.fillScreen(0xFFFF);
           if (buzzerEnabled) { buzzerTone(880); delay(60); buzzerTone(1175); delay(60); buzzerNoTone(); }
@@ -1762,10 +1619,10 @@ static void pkmOverworldTick(const ButtonsEdge& b) {
   }
 }
 
-// ==================== MAIN TICK ====================
+// ==================== TICK PRINCIPAL ====================
 static void hackerMonTick(const ButtonsEdge& b) {
   pkmMusicTick();
-  pkmGoSfxTick();  // runs every frame — continues during result screen
+  pkmGoSfxTick();  // se ejecuta cada frame — continúa durante la pantalla de resultados
 
   if (pkmScreen == PKM_SCREEN_OVERWORLD) {
     pkmOverworldTick(b);
@@ -1773,14 +1630,7 @@ static void hackerMonTick(const ButtonsEdge& b) {
   }
 
   if (pkmScreen == PKM_SCREEN_BATTLE) {
-    // Battle controls (phase 0 = choosing move):
-    //   UP    = cursor row up   (moves 0,1 top / 2,3 bottom)
-    //   UP    = previous move (wraps)
-    //   DOWN  = next move (wraps)
-    //   OK    = confirm selected move
-    //   DOWN+BACK held = flee (costs HP)
     if (pkmBattlePhase == 0 && !pkmBattleEnemyHurt && !pkmBattlePlayerHurt) {
-      // Flee combo: DOWN + BACK held
       if (isPressed(PUSH2PIN) && isPressed(PUSH4PIN)) {
         if (pkmHP > 5) pkmHP -= 5; else pkmHP = 1;
         pkmMusicStop();
@@ -1840,7 +1690,6 @@ static void hackerMonTick(const ButtonsEdge& b) {
 
   if (pkmScreen == PKM_SCREEN_RESULT) {
     if (b.ok) {
-      // Back to title screen (shows updated best rank)
       pkmLoadBestRank();
       pkmScreen = PKM_SCREEN_TITLE;
       pkmDrawTitle();

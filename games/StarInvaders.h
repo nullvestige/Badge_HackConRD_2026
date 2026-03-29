@@ -1,18 +1,15 @@
 // ======================= STAR INVADERS =======================
-// Classic Space Invaders for HackConRD 2026 badge.
+// Space Invaders clásico para el badge HackConRD 2026.
 //
-// Externals required from badge.ino:
+// Externos requeridos desde badge.ino:
 //   tft, busForTFT(), buzzerTone(), buzzerNoTone(), buzzerEnabled,
 //   isPressed(), PUSH1PIN, PUSH2PIN,
 //   uiFrame(), COLDIM, COLDARK, COLBLACK, COLNEON, COLWHITE, COLRED, COLCYAN,
 //   goTo(), MODE_GAMES_MENU, ButtonsEdge, prefs
 
-// ==================== MUSIC: Space Attack Theme ====================
+// ==================== MÚSICA: Tema Space Attack ====================
 struct SINote { uint16_t freq; uint16_t dur; };
 
-// Original space shooter theme — HackConRD 2026 badge
-// Inspired by classic 80s arcade shooters (Galaga / Galaxian feel)
-// Tempo ~150 BPM  Q=400ms  E=200ms  S=100ms  DQ=600ms  H=800ms
 #define _SQ   400
 #define _SDQ  600
 #define _S8   200
@@ -21,18 +18,18 @@ struct SINote { uint16_t freq; uint16_t dur; };
 #define _S16  100
 
 static const SINote siMelody[] PROGMEM = {
-  // --- Intro fanfare: ascending then descending ---
-  {440,_S16},{523,_S16},{659,_S16},{880,_S8},{0,_S16},  // A4 C5 E5 A5 rest
-  {784,_S16},{659,_S16},{523,_S16},{440,_S8},{0,_S16},  // G5 E5 C5 A4 rest
-  {440,_S16},{523,_S16},{659,_S16},{784,_S16},{659,_SQ},{0,_S8}, // A4 C5 E5 G5 E5 rest
+  // --- Fanfarria de intro: ascendente luego descendente ---
+  {440,_S16},{523,_S16},{659,_S16},{880,_S8},{0,_S16},
+  {784,_S16},{659,_S16},{523,_S16},{440,_S8},{0,_S16},
+  {440,_S16},{523,_S16},{659,_S16},{784,_S16},{659,_SQ},{0,_S8},
 
-  // --- Section A: main driving theme (A minor, runs) ---
+  // --- Sección A: tema principal impulsado (La menor, corredizas) ---
   {330,_S8},{392,_S8},{440,_S8},{523,_S8},{494,_S8},{440,_S8},{392,_S8},{330,_S8},
   {349,_S8},{440,_S8},{523,_S8},{659,_S8},{587,_S8},{523,_S8},{440,_S8},{349,_S8},
   {392,_S8},{440,_S8},{494,_S8},{523,_S8},{587,_S8},{659,_S8},{587,_S8},{523,_S8},
   {494,_SQ},{440,_SQ},{0,_SQ},
 
-  // --- Section B: high register energy burst ---
+  // --- Sección B: explosión de energía en registro alto ---
   {880,_S8},{784,_S8},{698,_S8},{659,_S8},{587,_S8},{523,_S8},{494,_S8},{440,_S8},
   {392,_S8},{440,_S8},{494,_S8},{523,_S8},{587,_S8},{659,_SDQ},{0,_S8},
   {659,_S8},{587,_S8},{523,_S8},{494,_S8},{440,_S8},{392,_S8},{349,_S8},{330,_S8},
@@ -65,8 +62,7 @@ static void siMusicTick() {
   if (++siMusicIdx >= siMelodyLen) siMusicIdx = 0;
 }
 
-// ==================== SFX ====================
-// Game over SFX — non-blocking chromatic descent
+// ==================== EFECTOS DE SONIDO ====================
 static const uint16_t SI_SFX_NOTES[7] PROGMEM = { 494, 440, 392, 349, 294, 262, 220 };
 static uint8_t  siSfxIdx    = 0;
 static uint32_t siSfxNextMs = 0;
@@ -84,40 +80,40 @@ static void siSfxTick() {
   siSfxNextMs = now + 120;
 }
 
-// ==================== GAME CONSTANTS ====================
+// ==================== CONSTANTES DEL JUEGO ====================
 #define SI_COLS       10
 #define SI_ROWS        5
-#define SI_CELL_W     20    // cell width  (alien + gap)
-#define SI_CELL_H     15    // cell height (alien + gap)
-#define SI_ALIEN_W    16    // alien body width
-#define SI_ALIEN_H    11    // alien body height
-#define SI_GRID_X     20    // grid top-left X: (240 - 10*20) / 2 = 20
-#define SI_GRID_Y     40    // grid top-left Y (top bounce limit)
-#define SI_GRID_Y_MAX 130   // bottom bounce limit (grid top-left Y, bottom edge = 130+75 = 205)
+#define SI_CELL_W     20    // ancho de celda (alien + espacio)
+#define SI_CELL_H     15    // alto de celda  (alien + espacio)
+#define SI_ALIEN_W    16    // ancho del cuerpo del alien
+#define SI_ALIEN_H    11    // alto del cuerpo del alien
+#define SI_GRID_X     20    // X superior-izquierdo de la cuadrícula: (240 - 10*20) / 2 = 20
+#define SI_GRID_Y     40    // Y superior-izquierdo de la cuadrícula (límite de rebote superior)
+#define SI_GRID_Y_MAX 130   // límite de rebote inferior (Y superior-izquierdo, borde inferior = 130+75 = 205)
 #define SI_WAVE_PAUSE_MS 1800
-#define SI_PLAYER_Y  218    // player Y position
-#define SI_PLAYER_W   20    // player width
-#define SI_PLAYER_H    9    // player height
-#define SI_PLAYER_SPD      2    // pixels per move
-#define SI_PLAYER_MOVE_MS 18    // ms between each move step
-#define SI_PBUL_MS        18    // ms between player bullet steps
-#define SI_ABULLET_MS     25    // ms between alien bullet steps
-#define SI_SHOOT_CD_MS   180    // min ms between player shots
+#define SI_PLAYER_Y  218    // posición Y del jugador
+#define SI_PLAYER_W   20    // ancho del jugador
+#define SI_PLAYER_H    9    // alto del jugador
+#define SI_PLAYER_SPD      2    // píxeles por movimiento
+#define SI_PLAYER_MOVE_MS 18    // ms entre cada paso de movimiento
+#define SI_PBUL_MS        18    // ms entre pasos de bala del jugador
+#define SI_ABULLET_MS     25    // ms entre pasos de bala alien
+#define SI_SHOOT_CD_MS   180    // ms mínimos entre disparos del jugador
 #define SI_BULLET_W    3
 #define SI_BULLET_H    7
-#define SI_MAX_PBUL    3    // max simultaneous player bullets
-#define SI_MAX_ABUL    4    // max simultaneous alien bullets
+#define SI_MAX_PBUL    3    // máximo de balas simultáneas del jugador
+#define SI_MAX_ABUL    4    // máximo de balas simultáneas alien
 #define SI_COLYELLOW 0xFFE0
 
-// ==================== STATE ====================
+// ==================== ESTADO ====================
 static bool     siAlive[SI_ROWS][SI_COLS];
 static int16_t  siGridX;
 static int16_t  siGridY;
 static int8_t   siDirX;
-static int8_t   siDirY;   // +1 = descending, -1 = ascending
+static int8_t   siDirY;   // +1 = descendiendo, -1 = ascendiendo
 static int16_t  siPlayerX;
-static int16_t  siPBulX[SI_MAX_PBUL], siPBulY[SI_MAX_PBUL]; // player bullets
-static int16_t  siABulX[SI_MAX_ABUL], siABulY[SI_MAX_ABUL]; // alien bullets
+static int16_t  siPBulX[SI_MAX_PBUL], siPBulY[SI_MAX_PBUL]; // balas del jugador
+static int16_t  siABulX[SI_MAX_ABUL], siABulY[SI_MAX_ABUL]; // balas alien
 static uint32_t siScore;
 static uint32_t siHiScore;
 static uint8_t  siLives;
@@ -137,7 +133,7 @@ static uint32_t siPBulNextMs;
 static uint32_t siABulNextMs;
 static uint32_t siShootCdMs;
 
-// ==================== HELPERS ====================
+// ==================== FUNCIONES AUXILIARES ====================
 static int16_t siRightEdge() {
   for (int8_t c = SI_COLS-1; c >= 0; c--)
     for (int8_t r = 0; r < SI_ROWS; r++)
@@ -157,12 +153,12 @@ static int16_t siBottomEdge() {
   return siGridY;
 }
 static uint32_t siMoveInterval() {
-  if (siAliensAlive <= 1) return 30;   // last alien: turbo speed
+  if (siAliensAlive <= 1) return 30;   // último alien: velocidad turbo
   uint32_t base = 550, fast = 80;
   return fast + (base - fast) * siAliensAlive / (SI_ROWS * SI_COLS);
 }
 
-// ==================== DRAWING ====================
+// ==================== DIBUJO ====================
 static uint16_t siAlienColor(uint8_t row) {
   switch (row) {
     case 0:  return COLCYAN;
@@ -172,21 +168,21 @@ static uint16_t siAlienColor(uint8_t row) {
   }
 }
 
-// 16×11 alien sprite drawn with rects
+// Sprite alien 16×11 dibujado con rectángulos
 static void siDrawAlien(int16_t px, int16_t py, uint8_t row, uint8_t anim) {
   uint16_t c = siAlienColor(row);
-  tft.fillRect(px+2,  py+3, 12, 6, c);  // main body
-  tft.fillRect(px+4,  py+1,  8, 2, c);  // head
-  tft.fillRect(px,    py+4,  2, 4, c);  // left arm
-  tft.fillRect(px+14, py+4,  2, 4, c);  // right arm
-  if (row <= 1) {                        // antennae
+  tft.fillRect(px+2,  py+3, 12, 6, c);  // cuerpo principal
+  tft.fillRect(px+4,  py+1,  8, 2, c);  // cabeza
+  tft.fillRect(px,    py+4,  2, 4, c);  // brazo izquierdo
+  tft.fillRect(px+14, py+4,  2, 4, c);  // brazo derecho
+  if (row <= 1) {                        // antenas
     tft.fillRect(px+3, py,   1, 2, c);
     tft.fillRect(px+12,py,   1, 2, c);
   }
-  if (anim == 0) {                       // legs frame A
+  if (anim == 0) {                       // patas frame A
     tft.fillRect(px+2,  py+9, 3, 2, c);
     tft.fillRect(px+11, py+9, 3, 2, c);
-  } else {                               // legs frame B
+  } else {                               // patas frame B
     tft.fillRect(px+5,  py+9, 3, 2, c);
     tft.fillRect(px+8,  py+9, 3, 2, c);
   }
@@ -197,9 +193,9 @@ static void siEraseAlien(int16_t px, int16_t py) {
 }
 
 static void siDrawPlayer(int16_t x, uint16_t col) {
-  tft.fillRect(x,    SI_PLAYER_Y+5, SI_PLAYER_W, 4, col); // base
-  tft.fillRect(x+3,  SI_PLAYER_Y+2, 14,          3, col); // mid
-  tft.fillRect(x+9,  SI_PLAYER_Y,    2,           2, col); // cannon
+  tft.fillRect(x,    SI_PLAYER_Y+5, SI_PLAYER_W, 4, col);
+  tft.fillRect(x+3,  SI_PLAYER_Y+2, 14,          3, col);
+  tft.fillRect(x+9,  SI_PLAYER_Y,    2,           2, col);
 }
 
 static void siErasePlayer(int16_t x) {
@@ -229,7 +225,6 @@ static void siRedrawAll() {
   tft.fillScreen(COLBLACK);
   uiFrame();
   siDrawHUD();
-  // horizontal separator
   tft.drawFastHLine(4, 22, 232, COLDARK);
 
   for (uint8_t r = 0; r < SI_ROWS; r++)
@@ -239,22 +234,18 @@ static void siRedrawAll() {
   siDrawPlayer(siPlayerX, COLNEON);
 }
 
-// ==================== INIT ====================
+// ==================== INICIALIZACIÓN ====================
 static void siNextWave() {
   siWave++;
-  // Bonus life for clearing the wave (max 3)
   if (siLives < 3) siLives++;
-  // Clear all bullets
   for (uint8_t i = 0; i < SI_MAX_PBUL; i++) { siPBulX[i] = -1; siPBulY[i] = -1; }
   for (uint8_t i = 0; i < SI_MAX_ABUL; i++) { siABulX[i] = -1; siABulY[i] = -1; }
-  // Reset alien grid
   memset(siAlive, 1, sizeof(siAlive));
   siAliensAlive = SI_ROWS * SI_COLS;
   siGridX = SI_GRID_X;
   siGridY = SI_GRID_Y;
   siDirX  = 1;
   siDirY  = 1;
-  // Reset player to center
   siPlayerX = (240 - SI_PLAYER_W) / 2;
   siPlayerFlashUntil  = 0;
   siPlayerFlashToggle = 0;
@@ -262,8 +253,7 @@ static void siNextWave() {
   siAnimFrame = 0;
   siMoveNextMs  = millis() + SI_WAVE_PAUSE_MS + 500;
   siShootNextMs = millis() + SI_WAVE_PAUSE_MS + 2000;
-  siShootCdMs   = millis() + SI_WAVE_PAUSE_MS + 500;  // block player shooting until 300ms after banner ends
-  // Show wave clear banner (music keeps playing)
+  siShootCdMs   = millis() + SI_WAVE_PAUSE_MS + 500;
   busForTFT();
   siRedrawAll();
   tft.fillRect(25, 90, 190, 52, COLBLACK);
@@ -305,7 +295,6 @@ static void siInitGame() {
   siMusicStart();
 }
 
-// Called from goTo(MODE_SPACE_INVADERS)
 static void drawSpaceInvaders() {
   siTitleScreen = true;
   siGameOver    = false;
@@ -335,7 +324,6 @@ static void drawSpaceInvaders() {
   tft.setCursor(78, 175);
   tft.print("[BACK] to menu");
 
-  // Draw a little alien preview (centered: 16px wide, center at 120)
   int16_t px = 112, py = 105;
   tft.fillRect(px+2,  py+3, 12, 6, COLNEON);
   tft.fillRect(px+4,  py+1,  8, 2, COLNEON);
@@ -386,7 +374,7 @@ static void siSaveHiScore() {
 static void spaceInvadersTick(ButtonsEdge b) {
   siSfxTick();
 
-  // ---- Title screen ----
+  // ---- Pantalla de título ----
   if (siTitleScreen) {
     if (b.ok)   { siTitleScreen = false; siInitGame(); }
     if (b.back) { goTo(MODE_GAMES_MENU); }
@@ -400,7 +388,7 @@ static void spaceInvadersTick(ButtonsEdge b) {
     return;
   }
 
-  // ---- Wave clear pause ----
+  // ---- Pausa de oleada completada ----
   if (siWaveClearUntil > 0) {
     if (millis() >= siWaveClearUntil) {
       siWaveClearUntil = 0;
@@ -412,7 +400,7 @@ static void spaceInvadersTick(ButtonsEdge b) {
   busForTFT();
   uint32_t now = millis();
 
-  // ---- Player hit flash (non-blocking) ----
+  // ---- Parpadeo por impacto del jugador (no bloqueante) ----
   if (siPlayerFlashUntil > 0) {
     if (now >= siPlayerFlashUntil) {
       siPlayerFlashUntil = 0;
@@ -436,7 +424,7 @@ static void spaceInvadersTick(ButtonsEdge b) {
     return;
   }
 
-  // ---- DOWN + BACK held together = exit to games menu ----
+  // ---- ABAJO + BACK mantenidos juntos = salir al menú de juegos ----
   if (isPressed(PUSH2PIN) && isPressed(PUSH4PIN)) {
     siMusicStop();
     siSaveHiScore();
@@ -445,7 +433,7 @@ static void spaceInvadersTick(ButtonsEdge b) {
     return;
   }
 
-  // ---- Player movement (throttled) ----
+  // ---- Movimiento del jugador (limitado) ----
   if (now >= siPlayerMoveNextMs) {
     int16_t oldPX = siPlayerX;
     if (isPressed(PUSH1PIN) && siPlayerX > 5)
@@ -459,7 +447,7 @@ static void spaceInvadersTick(ButtonsEdge b) {
     }
   }
 
-  // ---- Player shoot ----
+  // ---- Disparo del jugador ----
   if (b.ok && now >= siShootCdMs) {
     for (uint8_t i = 0; i < SI_MAX_PBUL; i++) {
       if (siPBulX[i] == -1) {
@@ -471,7 +459,7 @@ static void spaceInvadersTick(ButtonsEdge b) {
     }
   }
 
-  // ---- Move player bullets ----
+  // ---- Mover balas del jugador ----
   if (now >= siPBulNextMs) {
     siPBulNextMs = now + SI_PBUL_MS;
     for (uint8_t i = 0; i < SI_MAX_PBUL; i++) {
@@ -506,17 +494,15 @@ static void spaceInvadersTick(ButtonsEdge b) {
     }
   }
 
-  // ---- Move alien grid ----
+  // ---- Mover cuadrícula de aliens ----
   if (now >= siMoveNextMs) {
     siMoveNextMs = now + siMoveInterval();
     siAnimFrame ^= 1;
 
-    // Use alive-alien edges so the last alien can reach the screen corners.
     bool descend = false;
     if (siDirX > 0 && siRightEdge() >= 234) descend = true;
     if (siDirX < 0 && siLeftEdge()  <=   6) descend = true;
 
-    // Erase full grid area; clamp to display bounds (borders restored after draw)
     int16_t eraseX = max((int16_t)0, siGridX);
     int16_t eraseW = min((int16_t)(siGridX + SI_COLS*SI_CELL_W), (int16_t)240) - eraseX;
     if (eraseW > 0)
@@ -525,17 +511,14 @@ static void spaceInvadersTick(ButtonsEdge b) {
     if (descend) {
       siDirX  = -siDirX;
       siGridY += siDirY * 6;
-      // Bounce at bottom limit
       if (siDirY > 0 && siGridY >= SI_GRID_Y_MAX) {
         siGridY = SI_GRID_Y_MAX;
         siDirY  = -1;
       }
-      // Bounce at top limit
       if (siDirY < 0 && siGridY <= SI_GRID_Y) {
         siGridY = SI_GRID_Y;
         siDirY  = 1;
       }
-      // Safety: game over only if grid actually reaches the player
       if (siBottomEdge() >= SI_PLAYER_Y - 2) {
         siLives = 0;
         siGameOver = true;
@@ -554,29 +537,26 @@ static void spaceInvadersTick(ButtonsEdge b) {
         if (siAlive[r][c])
           siDrawAlien(siGridX + c*SI_CELL_W, siGridY + r*SI_CELL_H, r, siAnimFrame);
 
-    // Redraw player bullets if they were in the erased area
     for (uint8_t i = 0; i < SI_MAX_PBUL; i++)
       if (siPBulX[i] != -1 && siPBulY[i] >= siGridY && siPBulY[i] < siGridY + SI_ROWS*SI_CELL_H)
         tft.fillRect(siPBulX[i], siPBulY[i], SI_BULLET_W, SI_BULLET_H, COLWHITE);
 
-    // Restore frame borders in case any erase rect overlapped them
     tft.drawRect(0, 0, 240, 240, COLNEON);
     tft.drawRect(2, 2, 236, 236, COLDARK);
   }
 
-  // ---- Alien shooting ----
+  // ---- Disparo alien ----
   if (now >= siShootNextMs && siAliensAlive > 0) {
     siShootNextMs = now + 300 + (uint32_t)random(500);
     for (uint8_t i = 0; i < SI_MAX_ABUL; i++) {
       if (siABulX[i] != -1) continue;
-      // Pick lowest alive alien in a random column
       uint8_t col = random(SI_COLS);
       for (uint8_t attempt = 0; attempt < SI_COLS; attempt++) {
         uint8_t c = (col + attempt) % SI_COLS;
         for (int8_t r = SI_ROWS-1; r >= 0; r--) {
           if (siAlive[r][c]) {
             int16_t bx = siGridX + c*SI_CELL_W + SI_ALIEN_W/2 - SI_BULLET_W/2;
-            if (bx < 4 || bx > 233) break; // alien off-screen, skip
+            if (bx < 4 || bx > 233) break; // alien fuera de pantalla, ignorar
             siABulX[i] = bx;
             siABulY[i] = siGridY + r*SI_CELL_H + SI_ALIEN_H;
             goto si_found_shooter;
@@ -588,12 +568,11 @@ static void spaceInvadersTick(ButtonsEdge b) {
     }
   }
 
-  // ---- Move alien bullets ----
+  // ---- Mover balas alien ----
   const bool moveBullets = (now >= siABulNextMs);
   if (moveBullets) siABulNextMs = now + SI_ABULLET_MS;
   for (uint8_t i = 0; i < SI_MAX_ABUL; i++) {
     if (siABulX[i] == -1) continue;
-    // Invalidate bullets that ended up off-screen horizontally
     if (siABulX[i] < 4 || siABulX[i] > 233) { siABulX[i] = -1; continue; }
     if (!moveBullets) {
       tft.fillRect(siABulX[i], siABulY[i], SI_BULLET_W, SI_BULLET_H, COLRED);
@@ -602,7 +581,7 @@ static void spaceInvadersTick(ButtonsEdge b) {
     tft.fillRect(siABulX[i], siABulY[i], SI_BULLET_W, SI_BULLET_H, COLBLACK);
     siABulY[i] += 2;
     if (siABulY[i] > 232) { siABulX[i] = -1; continue; }
-    // Collision with player
+    // Colisión con el jugador
     if (siABulY[i] + SI_BULLET_H >= SI_PLAYER_Y &&
         siABulY[i] <= SI_PLAYER_Y + SI_PLAYER_H &&
         siABulX[i] + SI_BULLET_W >= siPlayerX   &&

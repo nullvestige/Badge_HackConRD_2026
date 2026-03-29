@@ -1,50 +1,46 @@
-// ======================= DINO RUN (Endless Runner) =======================
-// Chrome dinosaur-style side-scroller for HackConRD 2026 badge.
+// ======================= DINO RUN (Corredor sin fin) =======================
+// Side-scroller estilo dinosaurio de Chrome para el badge HackConRD 2026.
 //
-// Externals required from badge.ino:
+// Externos requeridos desde badge.ino:
 //   tft, busForTFT(), buzzerTone(), buzzerNoTone(), buzzerEnabled,
 //   isPressed(), PUSH1PIN..PUSH4PIN,
 //   uiFrame(), COLDIM, COLDARK, COLBLACK, COLNEON,
 //   goTo(), MODE_MENU, MODE_GAMES_MENU, ButtonsEdge, prefs
 
-// ==================== MUSIC ====================
+// ==================== MÚSICA ====================
 struct DinoNote { uint16_t freq; uint16_t dur; };
 
-// Dino Runner Theme — 8-bit prehistoric adventure, tempo 160 BPM
-// wholenote = (60000/160)*4 = 1500ms
-// quarter=375, dotted-quarter=563, eighth=188, dotted-eighth=281, half=750
-// Freqs: A4=440 B4=494 C5=523 D5=587 E5=659 G5=784 A5=880 B5=988 C6=1047
-#define _Q   375  // quarter
-#define _QD  563  // dotted quarter
-#define _8   188  // eighth
-#define _8D  281  // dotted eighth
-#define _H   750  // half
+#define _Q   375
+#define _QD  563
+#define _8   188
+#define _8D  281
+#define _H   750
 
 static const DinoNote dinoMelody[] PROGMEM = {
-  // Phrase A — ascent and descent
-  {659,_Q},{784,_Q},{880,_Q},{784,_Q},   // E5 G5 A5 G5
-  {659,_Q},{523,_Q},{440,_H},            // E5 C5 A4
-  {523,_Q},{587,_Q},{659,_Q},{784,_Q},   // C5 D5 E5 G5
-  {880,_QD},{784,_8},{659,_H},           // A5. G5 E5
-
-  // Phrase B — a step higher
-  {784,_Q},{880,_Q},{988,_Q},{880,_Q},   // G5 A5 B5 A5
-  {784,_Q},{659,_Q},{523,_H},            // G5 E5 C5
-  {587,_Q},{659,_Q},{784,_Q},{880,_Q},   // D5 E5 G5 A5
-  {988,_QD},{880,_8},{784,_H},           // B5. A5 G5
-
-  // Bridge — peak and fall
-  {1047,_Q},{880,_8},{784,_8},{659,_Q},{523,_Q},  // C6 A5 G5 E5 C5
-  {440,_Q},{494,_Q},{523,_Q},{587,_Q},            // A4 B4 C5 D5
-  {659,_QD},{587,_8},{523,_Q},{440,_Q},           // E5. D5 C5 A4
-  {494,_Q},{440,_8},{0,_8},{0,_H},                // B4 A4 REST
-
-  // Phrase A repeat (leads back to loop start)
+  // Frase A
   {659,_Q},{784,_Q},{880,_Q},{784,_Q},
   {659,_Q},{523,_Q},{440,_H},
   {523,_Q},{587,_Q},{659,_Q},{784,_Q},
   {880,_QD},{784,_8},{659,_H},
-  {0,_8},   // rest before loop
+
+  // Frase B
+  {784,_Q},{880,_Q},{988,_Q},{880,_Q},
+  {784,_Q},{659,_Q},{523,_H},
+  {587,_Q},{659,_Q},{784,_Q},{880,_Q},
+  {988,_QD},{880,_8},{784,_H},
+
+  // Puente
+  {1047,_Q},{880,_8},{784,_8},{659,_Q},{523,_Q},
+  {440,_Q},{494,_Q},{523,_Q},{587,_Q},
+  {659,_QD},{587,_8},{523,_Q},{440,_Q},
+  {494,_Q},{440,_8},{0,_8},{0,_H},
+
+  // Frase A (repetición)
+  {659,_Q},{784,_Q},{880,_Q},{784,_Q},
+  {659,_Q},{523,_Q},{440,_H},
+  {523,_Q},{587,_Q},{659,_Q},{784,_Q},
+  {880,_QD},{784,_8},{659,_H},
+  {0,_8},
 };
 #undef _Q
 #undef _QD
@@ -79,12 +75,10 @@ static void dinoMusicTick() {
   if (++dinoMusicIdx >= dinoMelodyLen) dinoMusicIdx = 0;
 }
 
-// ==================== SFX ====================
-// Jump / Crash: quick multi-step tones
+// ==================== EFECTOS DE SONIDO ====================
 static uint32_t dinoSfxUntil = 0;
 static uint8_t  dinoSfxPhase = 0;
 
-// Game Over SFX — arcade "bleep bloop" rapid descent (8 notes × 65ms = 520ms)
 static const uint16_t DINO_SFX_GO_NOTES[8] PROGMEM = { 880, 784, 698, 659, 587, 523, 494, 392 };
 static uint8_t  dinoGoSfxIdx    = 0;
 static uint32_t dinoGoSfxNextMs = 0;
@@ -108,24 +102,22 @@ static void dinoSfxJump() {
   if (!buzzerEnabled) return;
   buzzerTone(880);
   dinoSfxUntil = millis() + 40;
-  dinoSfxPhase = 1;  // will step to 1047 Hz after 40ms
+  dinoSfxPhase = 1;
 }
 
 static void dinoSfxCrash() {
   if (!buzzerEnabled) return;
   buzzerTone(180);
   dinoSfxUntil = millis() + 80;
-  dinoSfxPhase = 10;  // descending buzz: 180→120→80
+  dinoSfxPhase = 10;
 }
 
-// Call every tick to advance multi-step SFX (runs alongside music)
 static void dinoSfxTick() {
   if (!buzzerEnabled || dinoSfxUntil == 0) return;
   uint32_t now = millis();
   if (now < dinoSfxUntil) return;
   dinoSfxUntil = 0;
   if (dinoSfxPhase == 1) {
-    // Jump step 2: brief higher chirp
     buzzerTone(1047); dinoSfxUntil = now + 30; dinoSfxPhase = 2;
   } else if (dinoSfxPhase == 2) {
     buzzerNoTone(); dinoSfxPhase = 0;
@@ -138,82 +130,81 @@ static void dinoSfxTick() {
   }
 }
 
-// ==================== CONSTANTS ====================
+// ==================== CONSTANTES ====================
 #define DINO_W            240
 #define DINO_H            240
-#define DINO_GROUND_Y     180   // top of ground line (leaves 60px play space above)
-#define DINO_HUD_Y        195   // top of HUD strip (15px gap from ground — avoids overlap)
-#define DINO_DINO_X        28   // fixed horizontal left edge of dino
-#define DINO_DINO_W        18   // dino sprite width (px)
-#define DINO_DINO_H_RUN    28   // dino height when running/jumping
-#define DINO_DINO_H_DUCK   14   // dino height when ducking
-#define DINO_JUMP_VY      -14   // initial upward velocity (negative = up)
-#define DINO_GRAVITY        1   // gravity added to vy per tick
-#define DINO_MAX_SPEED     12   // max scroll speed (px/tick)
-#define DINO_OBS_MAX        3   // max simultaneous obstacles
+#define DINO_GROUND_Y     180   // parte superior de la línea del suelo (deja 60px de espacio de juego arriba)
+#define DINO_HUD_Y        195   // parte superior del HUD (margen de 15px desde el suelo — evita superposición)
+#define DINO_DINO_X        28   // borde izquierdo horizontal fijo del dino
+#define DINO_DINO_W        18   // ancho del sprite del dino (px)
+#define DINO_DINO_H_RUN    28   // altura del dino al correr/saltar
+#define DINO_DINO_H_DUCK   14   // altura del dino al agacharse
+#define DINO_JUMP_VY      -14   // velocidad vertical inicial al saltar (negativo = arriba)
+#define DINO_GRAVITY        1   // gravedad sumada a vy por tick
+#define DINO_MAX_SPEED     12   // velocidad máxima de desplazamiento (px/tick)
+#define DINO_OBS_MAX        3   // máximo de obstáculos simultáneos
 
-// Obstacle kinds
-#define OBS_CACTUS_S  0   // small cactus, 20px tall
-#define OBS_CACTUS_L  1   // tall cactus, 36px tall
-#define OBS_BIRD_HI   2   // bird at head height — must duck (y = GROUND_Y-60)
-#define OBS_BIRD_LO   3   // bird at torso height — must jump (y = GROUND_Y-35)
-#define OBS_ROCK      4   // wide flat rock on ground — must jump, cannot duck
-#define OBS_PAIR_SS   5   // small + small  (speed 5+)
-#define OBS_PAIR_SL   6   // small + tall   (speed 5+)
-#define OBS_PAIR_LS   7   // tall  + small  (speed 5+)
-#define OBS_PAIR_LL   8   // tall  + tall   (speed 7+)
-#define OBS_TRIO_SSS  9   // S+S+S          (speed 9+)
-#define OBS_TRIO_SLS  10  // S+L+S          (speed 9+)
-#define OBS_TRIO_LSL  11  // L+S+L          (speed 10+)
+// Tipos de obstáculos
+#define OBS_CACTUS_S  0   // cactus pequeño, 20px de alto
+#define OBS_CACTUS_L  1   // cactus alto, 36px de alto
+#define OBS_BIRD_HI   2   // pájaro a altura de cabeza — hay que agacharse (y = GROUND_Y-60)
+#define OBS_BIRD_LO   3   // pájaro a altura de torso — hay que saltar (y = GROUND_Y-35)
+#define OBS_ROCK      4   // roca plana ancha en el suelo — hay que saltar, no se puede agachar
+#define OBS_PAIR_SS   5   // pequeño + pequeño  (velocidad 5+)
+#define OBS_PAIR_SL   6   // pequeño + alto     (velocidad 5+)
+#define OBS_PAIR_LS   7   // alto  + pequeño    (velocidad 5+)
+#define OBS_PAIR_LL   8   // alto  + alto       (velocidad 7+)
+#define OBS_TRIO_SSS  9   // P+P+P              (velocidad 9+)
+#define OBS_TRIO_SLS  10  // P+A+P              (velocidad 9+)
+#define OBS_TRIO_LSL  11  // A+P+A              (velocidad 10+)
 
-// Colors (RGB565 constants, theme-neutral)
-#define DINO_COL_SKY    0x0000   // black sky
-#define DINO_COL_GROUND 0x2945   // dark grey ground strip
-#define DINO_COL_BIRD   0x077F   // cyan bird
-#define DINO_COL_CLOUD  0x1863   // dark teal cloud (visible on black sky)
+// Colores (constantes RGB565, neutras de tema)
+#define DINO_COL_SKY    0x0000   // cielo negro
+#define DINO_COL_GROUND 0x2945   // franja de suelo gris oscuro
+#define DINO_COL_BIRD   0x077F   // pájaro cian
+#define DINO_COL_CLOUD  0x1863   // nube verde azulado oscuro (visible sobre el cielo negro)
 
 #define DINO_CLOUD_COUNT 3
 
-// ==================== STATE ====================
+// ==================== ESTADO ====================
 struct DinoObs {
-  int16_t x;      // left edge screen x; -1 = inactive
-  uint8_t kind;   // OBS_* constant
+  int16_t x;      // borde izquierdo en pantalla; -1 = inactivo
+  uint8_t kind;   // constante OBS_*
 };
 
 static struct {
-  int16_t  dinoY;          // top of dino sprite
-  int8_t   dinoVY;         // vertical velocity
+  int16_t  dinoY;          // parte superior del sprite del dino
+  int8_t   dinoVY;         // velocidad vertical
   bool     ducking;
-  uint8_t  legPhase;       // 0 or 1
-  uint8_t  legTimer;       // ticks until next leg flip
+  uint8_t  legPhase;       // 0 o 1
+  uint8_t  legTimer;       // ticks hasta el siguiente cambio de pierna
   DinoObs  obs[DINO_OBS_MAX];
   uint32_t score;
   uint32_t hiScore;
-  uint8_t  speed;          // current scroll speed 3..DINO_MAX_SPEED
-  uint32_t lastSpeedUp;    // score at last speed bump
+  uint8_t  speed;          // velocidad de desplazamiento actual 3..DINO_MAX_SPEED
+  uint32_t lastSpeedUp;    // puntuación en el último incremento de velocidad
   uint8_t  lives;
-  uint16_t obsSpawnTimer;  // ticks until next spawn
+  uint16_t obsSpawnTimer;  // ticks hasta el siguiente spawn
   uint32_t frameCount;
-  int16_t  cloudX[DINO_CLOUD_COUNT];  // cloud x positions (scroll at half speed)
-  uint8_t  cloudY[DINO_CLOUD_COUNT];  // cloud y positions (fixed per game)
-  uint8_t  cloudW[DINO_CLOUD_COUNT];  // cloud widths (vary for visual interest)
-  uint32_t hitFlashUntil;  // millis() deadline for hit-flash pause (non-blocking)
-  uint32_t speedBeepUntil; // millis() deadline for speed-up beep (non-blocking)
+  int16_t  cloudX[DINO_CLOUD_COUNT];  // posiciones X de las nubes (se desplazan a mitad de velocidad)
+  uint8_t  cloudY[DINO_CLOUD_COUNT];  // posiciones Y de las nubes (fijas por partida)
+  uint8_t  cloudW[DINO_CLOUD_COUNT];  // anchos de las nubes (varían para interés visual)
+  uint32_t hitFlashUntil;  // plazo millis() para la pausa de parpadeo por golpe (no bloqueante)
+  uint32_t speedBeepUntil; // plazo millis() para el pitido de subida de velocidad (no bloqueante)
   bool     gameOver;
   bool     titleScreen;
 } dinoSt;
 
 // ==================== SPRITES ====================
-// Callers MUST call busForTFT() before any render pass.
-// These helpers do NOT call busForTFT() themselves.
+// El llamador DEBE invocar busForTFT() antes de cualquier pasada de renderizado.
 
 static void dinoDrawRunning(int16_t y, uint8_t leg) {
   uint16_t c = COLNEON, cd = COLDIM;
   int x = DINO_DINO_X;
-  tft.fillRect(x,      y,      14, 16, c);   // body
-  tft.fillRect(x + 4,  y - 8,  12, 10, c);  // head
-  tft.fillRect(x + 13, y - 6,   2,  2, COLBLACK); // eye
-  tft.fillRect(x - 4,  y + 4,   6,  4, cd); // tail
+  tft.fillRect(x,      y,      14, 16, c);   // cuerpo
+  tft.fillRect(x + 4,  y - 8,  12, 10, c);  // cabeza
+  tft.fillRect(x + 13, y - 6,   2,  2, COLBLACK); // ojo
+  tft.fillRect(x - 4,  y + 4,   6,  4, cd); // cola
   if (leg == 0) {
     tft.fillRect(x + 2,  y + 16, 4, 8, cd);
     tft.fillRect(x + 8,  y + 20, 4, 4, cd);
@@ -261,24 +252,24 @@ static void dinoDrawBird(int16_t x, int16_t y, bool wingUp) {
   else        tft.fillRect(x + 2, y + 6, 10, 4, c);
 }
 
-// Cloud: soft 3-layer pixel cloud
+// Nube: nube suave de píxeles en 3 capas
 static void dinoDrawCloud(int16_t x, int16_t y, uint8_t w) {
   uint16_t c = DINO_COL_CLOUD;
-  tft.fillRect(x,         y,      w,     4, c);  // base layer
-  tft.fillRect(x + 4,     y - 4,  w - 6, 4, c);  // middle bump
-  tft.fillRect(x + 8,     y - 8,  w - 14, 4, c); // top peak
+  tft.fillRect(x,         y,      w,     4, c);  // capa base
+  tft.fillRect(x + 4,     y - 4,  w - 6, 4, c);  // protuberancia media
+  tft.fillRect(x + 8,     y - 8,  w - 14, 4, c); // pico superior
 }
 
-// Rock: wide flat boulder on the ground — must jump, ducking doesn't help
+// Roca: roca plana y ancha en el suelo — hay que saltar, agacharse no ayuda
 static void dinoDrawRock(int16_t x) {
   int by = DINO_GROUND_Y;
   uint16_t c = COLDIM;
-  tft.fillRect(x,      by - 12, 28, 12, c);  // main body
-  tft.fillRect(x + 4,  by - 16,  8,  4, c);  // top bump
-  tft.fillRect(x + 18, by - 14,  6,  2, c);  // secondary bump
+  tft.fillRect(x,      by - 12, 28, 12, c);  // cuerpo principal
+  tft.fillRect(x + 4,  by - 16,  8,  4, c);  // protuberancia superior
+  tft.fillRect(x + 18, by - 14,  6,  2, c);  // protuberancia secundaria
 }
 
-// Pair/trio combos — 14px spacing between each cactus
+// Combos de pares/tríos — 14px de separación entre cada cactus
 static void dinoDrawPairSS(int16_t x)  { dinoDrawCactusS(x); dinoDrawCactusS(x+14); }
 static void dinoDrawPairSL(int16_t x)  { dinoDrawCactusS(x); dinoDrawCactusL(x+14); }
 static void dinoDrawPairLS(int16_t x)  { dinoDrawCactusL(x); dinoDrawCactusS(x+14); }
@@ -287,14 +278,12 @@ static void dinoDrawTrioSSS(int16_t x) { dinoDrawCactusS(x); dinoDrawCactusS(x+1
 static void dinoDrawTrioSLS(int16_t x) { dinoDrawCactusS(x); dinoDrawCactusL(x+14); dinoDrawCactusS(x+28); }
 static void dinoDrawTrioLSL(int16_t x) { dinoDrawCactusL(x); dinoDrawCactusS(x+14); dinoDrawCactusL(x+28); }
 
-// Erase dino area (fill with sky, restore ground strip below)
 static void dinoEraseDino(int16_t y, bool wasDucking) {
   int h = wasDucking ? DINO_DINO_H_DUCK : DINO_DINO_H_RUN;
   tft.fillRect(DINO_DINO_X - 5, y - 10, DINO_DINO_W + 10, h + 18, DINO_COL_SKY);
   tft.drawFastHLine(DINO_DINO_X - 5, DINO_GROUND_Y, DINO_DINO_W + 10, DINO_COL_GROUND);
 }
 
-// Erase single obstacle area
 static void dinoEraseObs(const DinoObs& o) {
   if (o.kind == OBS_CACTUS_S) {
     tft.fillRect(o.x - 1, DINO_GROUND_Y - 21, 16, 22, DINO_COL_SKY);
@@ -324,15 +313,13 @@ static void dinoEraseObs(const DinoObs& o) {
   }
 }
 
-// ==================== FULL FRAME DRAW ====================
+// ==================== DIBUJO DE FRAME COMPLETO ====================
 static void dinoDrawAll() {
   busForTFT();
 
-  // Sky + ground
   tft.fillRect(0, 0, DINO_W, DINO_GROUND_Y, DINO_COL_SKY);
   tft.fillRect(0, DINO_GROUND_Y, DINO_W, 2, DINO_COL_GROUND);
 
-  // Clouds (scroll at half ground speed, wrap around)
   uint8_t halfSpeed = (dinoSt.speed >> 1) + 1;
   for (uint8_t i = 0; i < DINO_CLOUD_COUNT; i++) {
     if ((dinoSt.frameCount & 1) == 0) {
@@ -344,7 +331,6 @@ static void dinoDrawAll() {
       dinoDrawCloud(dinoSt.cloudX[i], dinoSt.cloudY[i], dinoSt.cloudW[i]);
   }
 
-  // HUD strip
   tft.fillRect(0, DINO_HUD_Y, DINO_W, DINO_H - DINO_HUD_Y, COLBLACK);
   tft.setTextSize(1);
   tft.setTextColor(COLNEON);
@@ -360,11 +346,9 @@ static void dinoDrawAll() {
   tft.setCursor(128, DINO_HUD_Y + 26);
   tft.print("SPD");
 
-  // Dino
   if (dinoSt.ducking) dinoDrawDucking(dinoSt.dinoY);
   else                dinoDrawRunning(dinoSt.dinoY, dinoSt.legPhase);
 
-  // Obstacles
   for (uint8_t i = 0; i < DINO_OBS_MAX; i++) {
     if (dinoSt.obs[i].x < 0) continue;
     const DinoObs& o = dinoSt.obs[i];
@@ -385,7 +369,7 @@ static void dinoDrawAll() {
   }
 }
 
-// ==================== GAME OVER SCREEN ====================
+// ==================== PANTALLA DE GAME OVER ====================
 static void dinoDrawGameOver() {
   busForTFT();
   tft.fillScreen(COLBLACK);
@@ -406,14 +390,14 @@ static void dinoDrawGameOver() {
     tft.setCursor(120 - (int)(strlen(hiBuf)*6)/2, 154); tft.print(hiBuf); }
 }
 
-// ==================== INIT ====================
+// ==================== INICIALIZACIÓN ====================
 static void dinoInitGame() {
   dinoSt.dinoY        = DINO_GROUND_Y - DINO_DINO_H_RUN;
   dinoSt.dinoVY       = 0;
   dinoSt.ducking      = false;
   dinoSt.legPhase     = 0;
   dinoSt.legTimer     = 8;
-  dinoSt.speed        = 3;   // start slow, increases with score
+  dinoSt.speed        = 3;
   dinoSt.score        = 0;
   dinoSt.lastSpeedUp  = 0;
   dinoSt.lives        = 1;
@@ -424,7 +408,6 @@ static void dinoInitGame() {
   dinoSt.gameOver     = false;
   dinoSt.titleScreen  = false;
   for (uint8_t i = 0; i < DINO_OBS_MAX; i++) dinoSt.obs[i].x = -1;
-  // Spread clouds evenly across the screen with varied heights/widths
   static const uint8_t cloudYs[DINO_CLOUD_COUNT] = { 30, 55, 18 };
   static const uint8_t cloudWs[DINO_CLOUD_COUNT] = { 32, 24, 28 };
   for (uint8_t i = 0; i < DINO_CLOUD_COUNT; i++) {
@@ -434,18 +417,17 @@ static void dinoInitGame() {
   }
 }
 
-// ==================== SPAWN ====================
+// ==================== GENERACIÓN DE OBSTÁCULOS ====================
 static void dinoSpawnObs() {
   for (uint8_t i = 0; i < DINO_OBS_MAX; i++) {
     if (dinoSt.obs[i].x >= 0) continue;
     dinoSt.obs[i].x = DINO_W + 4;
-    // XOR frame + score + upper nibble for better distribution
+    // XOR frame + puntuación + nibble alto para mejor distribución
     uint8_t r = (uint8_t)(dinoSt.frameCount & 0xFF)
               ^ (uint8_t)(dinoSt.score & 0xFF)
               ^ (uint8_t)(dinoSt.frameCount >> 4);
     uint8_t sp = dinoSt.speed;
 
-    // Build pool of available obstacles — grows with speed
     uint8_t pool[14];
     uint8_t n = 0;
     pool[n++] = OBS_CACTUS_S;
@@ -463,9 +445,8 @@ static void dinoSpawnObs() {
   }
 }
 
-// ==================== COLLISION ====================
+// ==================== COLISIÓN ====================
 static bool dinoCheckHit(const DinoObs& o) {
-  // Dino hitbox (shrunk 3px for fairness)
   int dx1 = DINO_DINO_X + 3;
   int dy1 = dinoSt.dinoY + 3;
   int dx2 = DINO_DINO_X + DINO_DINO_W - 3;
@@ -498,8 +479,7 @@ static bool dinoCheckHit(const DinoObs& o) {
   return (dx1 < ox2 && dx2 > ox1 && dy1 < oy2 && dy2 > oy1);
 }
 
-// ==================== ENTRY DRAW ====================
-// Called once by goTo(MODE_DINO). Draws title screen.
+// ==================== DIBUJO DE ENTRADA ====================
 static void drawDino() {
   dinoSt.titleScreen = true;
   dinoSt.hiScore = 0;
@@ -520,7 +500,6 @@ static void drawDino() {
   // tft.setCursor(78, 96);   // "HackConRD 2026" 14*6=84 → 120-42=78
   // tft.print("HackConRD 2026");
 
-  // Idle dino centered on ground line
   dinoDrawRunning(DINO_GROUND_Y - DINO_DINO_H_RUN, 0);
 
   tft.setTextColor(COLNEON);
@@ -536,18 +515,18 @@ static void drawDino() {
   tft.fillRect(0, DINO_GROUND_Y, DINO_W, 2, DINO_COL_GROUND);
 }
 
-// ==================== GAME TICK ====================
+// ==================== TICK DEL JUEGO ====================
 static void dinoTick(ButtonsEdge b) {
-  dinoGoSfxTick();  // runs every frame regardless of state (game over screen needs it)
+  dinoGoSfxTick();
 
-  // ---- Title screen ----
+  // ---- Pantalla de título ----
   if (dinoSt.titleScreen) {
     if (b.ok)   { dinoInitGame(); dinoMusicStart(); dinoDrawAll(); }
     if (b.back) { goTo(MODE_GAMES_MENU); }
     return;
   }
 
-  // ---- Game Over screen ----
+  // ---- Pantalla de Game Over ----
   if (dinoSt.gameOver) {
     if (b.ok)   { dinoInitGame(); dinoMusicStart(); dinoDrawAll(); }
     if (b.back) { goTo(MODE_GAMES_MENU); }
@@ -556,16 +535,14 @@ static void dinoTick(ButtonsEdge b) {
 
   uint32_t now = millis();
 
-  // ---- Hit-flash pause (non-blocking) ----
-  // While hitFlashUntil > now, skip game logic but keep music/LEDs running via caller.
+  // ---- Pausa de parpadeo por golpe (no bloqueante) ----
   if (now < dinoSt.hitFlashUntil) { dinoSfxTick(); return; }
 
-  // ---- Active game ----
+  // ---- Juego activo ----
   dinoSfxTick();
   dinoSt.frameCount++;
   bool onGround = (dinoSt.dinoY >= DINO_GROUND_Y - DINO_DINO_H_RUN);
 
-  // DOWN + BACK held together = exit to games menu (same as HackerMon)
   if (isPressed(PUSH2PIN) && isPressed(PUSH4PIN)) {
     dinoMusicStop();
     while (isPressed(PUSH2PIN) || isPressed(PUSH4PIN)) delay(10);
@@ -573,13 +550,11 @@ static void dinoTick(ButtonsEdge b) {
     return;
   }
 
-  // Input
   if (b.up && onGround && !dinoSt.ducking) {
     dinoSt.dinoVY = DINO_JUMP_VY;
   }
   dinoSt.ducking = isPressed(PUSH2PIN) && onGround;
 
-  // Physics
   dinoSt.dinoVY += DINO_GRAVITY;
   dinoSt.dinoY  += dinoSt.dinoVY;
   int groundTop = DINO_GROUND_Y - (dinoSt.ducking ? DINO_DINO_H_DUCK : DINO_DINO_H_RUN);
@@ -588,12 +563,10 @@ static void dinoTick(ButtonsEdge b) {
     dinoSt.dinoVY = 0;
   }
 
-  // Leg animation (only on ground)
   if (onGround && !dinoSt.ducking) {
     if (--dinoSt.legTimer == 0) { dinoSt.legPhase ^= 1; dinoSt.legTimer = 8; }
   }
 
-  // Scroll obstacles (boost adds +3, capped at DINO_MAX_SPEED)
   uint8_t scrollSpeed = dinoSt.speed;
   for (uint8_t i = 0; i < DINO_OBS_MAX; i++) {
     if (dinoSt.obs[i].x < 0) continue;
@@ -601,17 +574,15 @@ static void dinoTick(ButtonsEdge b) {
     if (dinoSt.obs[i].x < -30) dinoSt.obs[i].x = -1;
   }
 
-  // Spawn
+  // Generación
   if (--dinoSt.obsSpawnTimer == 0) {
     dinoSpawnObs();
-    // Gap shrinks with both speed and score; floor drops from 40→20 after score 500
     int gap = 100 - dinoSt.speed * 6;
     int minGap = (dinoSt.score > 500) ? 20 : 30;
     if (gap < minGap) gap = minGap;
     dinoSt.obsSpawnTimer = (uint16_t)(gap + (dinoSt.frameCount % 20));
   }
 
-  // Collision
   for (uint8_t i = 0; i < DINO_OBS_MAX; i++) {
     if (dinoSt.obs[i].x < 0) continue;
     if (!dinoCheckHit(dinoSt.obs[i])) continue;
@@ -621,7 +592,7 @@ static void dinoTick(ButtonsEdge b) {
     if (dinoSt.lives == 0) {
       dinoSt.gameOver = true;
       dinoMusicStop();
-      dinoSfxUntil = 0; dinoSfxPhase = 0;  // cancel crash SFX — game over sound takes over
+      dinoSfxUntil = 0; dinoSfxPhase = 0;
       dinoSfxGameOverStart();
       if (dinoSt.score > dinoSt.hiScore) {
         dinoSt.hiScore = dinoSt.score;
@@ -632,12 +603,10 @@ static void dinoTick(ButtonsEdge b) {
       dinoDrawGameOver();
       return;
     }
-    // Non-fatal hit: pause game logic for 150ms (music/LEDs keep running)
     dinoSt.hitFlashUntil = now + 150;
     break;
   }
 
-  // Score + automatic speed up every 100 points
   dinoSt.score += 1;
   if (dinoSt.score - dinoSt.lastSpeedUp >= 100 && dinoSt.speed < DINO_MAX_SPEED) {
     dinoSt.speed++;

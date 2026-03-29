@@ -1,5 +1,5 @@
 // =====================================================
-// RF-CTF 433 (HackConRD26) - UI MATRIX THEME (v2.1)
+// Badge HackConRD 2026 (v1.1)
 // =====================================================
 
 #include <Arduino.h>
@@ -43,7 +43,7 @@ enum ScreenMode : uint8_t {
 };
 static ScreenMode mode = MODE_MENU;
 
-// ---- Forward declarations (needed due to Arduino .ino ordering) ----
+// ---- Declaraciones anticipadas (necesarias por el orden de .ino en Arduino) ----
 static void frfBackgroundTick();
 static void screensaverTick();
 static void exitScreensaver();
@@ -62,7 +62,7 @@ enum RfkcPhase : uint8_t {
   RFKC_SUMMARY,
 };
 
-// ==== Badge profile types ====
+// ==== Tipos de perfil del badge ====
 enum BadgeRole : uint8_t {
   ROLE_SCRPTK1D = 0,
   ROLE_H4CK3R  = 1,
@@ -72,12 +72,12 @@ enum BadgeRole : uint8_t {
 };
 
 
-// ======================= RFLAB HEADER (MUST BE AT TOP) =======================
+// ======================= ENCABEZADO RFLAB (DEBE ESTAR AL INICIO) =======================
 
 #ifndef RFLAB_HEADER_GUARD
 #define RFLAB_HEADER_GUARD
 
-// CC1101 regs (define if missing)
+// Registros CC1101 (definir si faltan)
 #ifndef CC1101_RXBYTES
   #define CC1101_RXBYTES   0x3B
 #endif
@@ -95,7 +95,7 @@ enum BadgeRole : uint8_t {
   #define CC1101_READ_BURST  0xC0
 #endif
 
-// ======================= RFLAB PHASE TYPE (GLOBAL) =======================
+// ======================= TIPO DE FASE RFLAB (GLOBAL) =======================
 enum RFLabPhase2 : uint8_t {
   RFL_MENU = 0,
   RFL_INTRO,
@@ -108,7 +108,7 @@ enum RFLabPhase2 : uint8_t {
 };
 // ========================================================================
 
-// ---------- Learning protocol ----------
+// ---------- Protocolo de aprendizaje ----------
 static const uint8_t RFL_MAGIC = 0xA6;
 static const uint8_t RFL_BCAST = 0xFF;
 
@@ -120,7 +120,7 @@ enum RFL_MsgType : uint8_t {
   RFL_REPLAY_ACK = 5,
 };
 
-// ---------- RX frame struct ----------
+// ---------- Estructura de frame RX ----------
 struct RFL_RxFrame {
   uint8_t payload[32];
   int8_t  rssiDbm;
@@ -129,7 +129,7 @@ struct RFL_RxFrame {
   uint32_t ms;
 };
 
-// ---------- Prototypes (so .ino reorder can't break types) ----------
+// ---------- Prototipos (evitan que el reordenamiento de .ino rompa tipos) ----------
 static void scanHitsSortByRssiDesc();  // forward decl (used by Friends UI)
 static bool ccWriteBurst(uint8_t addr, const uint8_t* data, uint8_t len);
 static bool ccReadBurst(uint8_t addr, uint8_t* out, uint8_t len);
@@ -140,10 +140,10 @@ static void rflRxService();
 static bool rflRxPop(RFL_RxFrame &out);
 
 #endif // RFLAB_HEADER_GUARD
-// ======================= END RFLAB HEADER =======================
+// ======================= FIN DEL ENCABEZADO RFLAB =======================
 
 
-// Forward decl required functions
+// Funciones con declaración anticipada requerida
 static void ccEnterRx();
 static void ccApplyProfile(RadioProfile p);
 static RadioProfile loadRadioProfile();
@@ -186,7 +186,7 @@ CRGB leds[NUM_LEDS];
 #define LED_BRIGHT_MAX_SAFE  50
 #define LED_MAX_MA           350
 
-// ======================= CC1101 REGISTROS / STROBES =======================
+// ======================= REGISTROS CC1101 / STROBES =======================
 #define CC1101_PKTLEN       0x06
 #define CC1101_PKTCTRL1     0x07
 #define CC1101_PKTCTRL0     0x08
@@ -221,7 +221,7 @@ Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 Preferences prefs;
 uint8_t ledBrightness = 20;
 
-// ======================= UI THEMES =======================
+// ======================= TEMAS DE UI =======================
 enum UiTheme : uint8_t {
   UI_MATRIX = 0,
   UI_RED,
@@ -248,7 +248,7 @@ static float    foxSmoothedRssi = -120.0f;
 static float    foxMaxRssi      = -120.0f;
 static uint32_t foxMaxMs        = 0;
 
-// ======================= POWER MGMT =======================
+// ======================= GESTIÓN DE ENERGÍA =======================
 static uint32_t lastActivityMs = 0;
 static bool ledsSuspended = false;
 
@@ -256,7 +256,7 @@ static inline void noteActivity(bool any) {
   if (any) lastActivityMs = millis();
 }
 
-// ======================= SPI SETTINGS =======================
+// ======================= CONFIGURACIÓN SPI =======================
 SPISettings rfSpiSet(1000000, MSBFIRST, SPI_MODE0);
 
 // ======================= BUZZER =======================
@@ -264,9 +264,9 @@ static bool    buzzerEnabled = false;
 static uint8_t buzzerVolume  = 1;   // 0=Low  1=Medium  2=High
 
 static inline uint8_t _buzzerDuty() {
-  if (buzzerVolume == 0) return 2;    // ~0.8%  Low
-  if (buzzerVolume == 1) return 6;    // ~2.4%  Medium
-  return 16;                           // ~6.3%  High
+  if (buzzerVolume == 0) return 2;    // ~0.8%  Bajo
+  if (buzzerVolume == 1) return 6;    // ~2.4%  Medio
+  return 16;                           // ~6.3%  Alto
 }
 
 static inline void beep(uint16_t ms) {
@@ -293,7 +293,7 @@ static inline int16_t convertRssi(uint8_t raw) {
   return (r / 2) - 74;
 }
 
-// ======================= RADIO PARAMS =======================
+// ======================= PARÁMETROS DE RADIO =======================
 static RadioProfile radioProfile = PROFILE_FOX_OOK_RSSI;
 static uint32_t foxFreq100 = 43390;
 
@@ -370,7 +370,7 @@ static void ccSetFrequencyMHz100(uint32_t mhz100) {
   ccWriteReg(CC1101_FREQ0, (reg >>  0) & 0xFF);
 }
 
-// ======================= CC1101 CONFIG =======================
+// ======================= CONFIGURACIÓN CC1101 =======================
 static void ccConfigurePacketGFSK_9B() {
   ccStrobe(CC1101_SRES);
   delay(40);
@@ -489,7 +489,7 @@ static void rfPowerUp() {
 }
 
 
-// ======================= RFLAB RF IMPLEMENTATION =======================
+// ======================= IMPLEMENTACIÓN RF RFLAB =======================
 
 static bool ccWriteBurst(uint8_t addr, const uint8_t* data, uint8_t len) {
   if (!ccSelect()) return false;
@@ -523,7 +523,7 @@ static bool ccSendFixed9(const uint8_t p[9]) {
   uint32_t t0 = millis();
   while (millis() - t0 < 600) {
     uint8_t st = ccReadStatus(CC1101_MARCSTATE) & 0x1F;
-    if (st == 0x01) break;   // IDLE
+    if (st == 0x01) break;   // IDLE (reposo)
     if (st == 0x16) break;   // TXFIFO_UNDERFLOW
   }
 
@@ -542,16 +542,16 @@ static bool ccIsChannelFree() {
   ccStrobe(CC1101_SIDLE);
   ccStrobe(CC1101_SFRX);
   ccStrobe(CC1101_SRX);
-  delayMicroseconds(500); // Wait for RSSI valid
+  delayMicroseconds(500); // Esperar a que RSSI sea válido
   uint8_t rssiRaw = ccReadStatus(CC1101_RSSI);
   int16_t rssiDbm = convertRssi(rssiRaw);
-  return rssiDbm < -80; // Free if under -80 dBm
+  return rssiDbm < -80; // Libre si está por debajo de -80 dBm
 }
 
 static bool ccSendFixed32(const uint8_t p[32]) {
   busForRF();
 
-  // Listen Before Talk (LBT / CSMA)
+  // Escuchar antes de hablar (LBT / CSMA)
   uint8_t tries = 0;
   while (!ccIsChannelFree() && tries < 10) {
     delay(10 + (esp_random() % 40));
@@ -566,7 +566,7 @@ static bool ccSendFixed32(const uint8_t p[32]) {
   uint32_t t0 = millis();
   while (millis() - t0 < 800) {
     uint8_t st = ccReadStatus(CC1101_MARCSTATE) & 0x1F;
-    if (st == 0x01) break;   // IDLE
+    if (st == 0x01) break;   // IDLE (reposo)
     if (st == 0x16) break;   // TXFIFO_UNDERFLOW
   }
 
@@ -602,7 +602,7 @@ static void frfSendNackBurst(uint16_t to, uint8_t nonce) {
 }
 
 
-// RX state (ONLY here)
+// Estado RX (SOLO aquí)
 static volatile bool rfl_rxHas = false;
 static RFL_RxFrame   rfl_rxLast;
 static const uint8_t RXQ_SZ = 8;
@@ -632,16 +632,16 @@ static void rflRxService() {
   }
 
   uint8_t bytes = rxRaw & 0x7F;
-  // Determine packet length based on current profile
+  // Determinar longitud del paquete según el perfil actual
   uint8_t pktLen = (radioProfile == PROFILE_FRIENDS_GFSK_32B) ? 32 : 9;
-  uint8_t totalBytes = pktLen + 2; // +2 for RSSI and LQI/CRC
+  uint8_t totalBytes = pktLen + 2; // +2 para RSSI y LQI/CRC
 
   while (bytes >= totalBytes) {
     uint8_t pkt[34];
     if (!ccReadBurst(CC1101_FIFO, pkt, totalBytes)) return;
 
     RFL_RxFrame f;
-    memset(f.payload, 0, 32); // Clear buffer
+    memset(f.payload, 0, 32); // Limpiar buffer
     memcpy(f.payload, pkt, pktLen);
 
     uint8_t status0 = pkt[pktLen];          // RSSI
@@ -656,7 +656,7 @@ static void rflRxService() {
     ccStrobe(CC1101_SRX);
 
     rxRaw = ccReadStatus(CC1101_RXBYTES);
-    if (rxRaw & 0x80) {                // overflow mid-drain
+    if (rxRaw & 0x80) {                // desbordamiento durante el vaciado
       ccStrobe(CC1101_SIDLE);
       ccStrobe(CC1101_SFRX);
       ccStrobe(CC1101_SRX);
@@ -673,7 +673,7 @@ static bool rflRxPop(RFL_RxFrame &out) {
   return true;
 }
 
-// ======================= NVS helpers =======================
+// ======================= Funciones auxiliares NVS =======================
 static uint8_t loadLedBrightness() {
   prefs.begin("hackcon", true);
   uint8_t b = prefs.getUChar("ledbr", 50);
@@ -759,7 +759,7 @@ static void applyUiTheme(UiTheme t) {
   }
 }
 
-// ======================= UI buttons edges =======================
+// ======================= Flancos de botones UI =======================
 static ButtonsEdge readButtonsEdge() {
   static uint8_t p1=HIGH, p2=HIGH, p3=HIGH, p4=HIGH;
   ButtonsEdge b;
@@ -780,7 +780,7 @@ static ButtonsEdge readButtonsEdge() {
 }
 static inline bool isPressed(uint8_t pin) { return digitalRead(pin) == LOW; }
 
-// ======================= UI primitives =======================
+// ======================= Primitivas de UI =======================
 static void uiFrame() {
   busForTFT();
   tft.drawRect(0, 0, 240, 240, COLNEON);
@@ -818,7 +818,6 @@ static void uiFlashStatus(const char* title, const char* msg, uint16_t ms) {
   tft.setTextSize(3);
   tft.setTextColor(COLNEON);
 
-  // Center-ish (simple, stable)
   tft.setCursor(14, 110);
   tft.print(msg);
 
@@ -826,7 +825,7 @@ static void uiFlashStatus(const char* title, const char* msg, uint16_t ms) {
   while (millis() - t0 < ms) {
     screensaverTick();
     powerLedsTick();
-    ledTick(); // Safe here as no manual colors are set
+    ledTick(); // Seguro aquí ya que no se establecen colores manuales
     delay(5);
   }
 }
@@ -862,9 +861,7 @@ static void uiSmallStatusRX() {
 #define SAVER_W 240
 #define SAVER_H 240
 
-// ======================= SAVER REGISTRY =======================
-// Para agregar un nuevo saver: incluir el .h, declarar el array y
-// añadir una entrada en SAVERS[]. Nada más.
+// ======================= REGISTRO DE SALVAPANTALLAS =======================
 
 static const uint8_t saverBits_nolimit[] PROGMEM = {
 #include "img/nolimit_saver.h"
@@ -938,7 +935,7 @@ struct SaverDef {
 };
 
 static const SaverDef SAVERS[] = {
-  // name         bits                  overlay  mono
+  // nombre       bits                  overlay  mono
   { "No Limit",   saverBits_nolimit,    false, false },
   { "ID Card",    saverBits_id,         true,  true  },
   { "Nika",       saverBits_nika,       false, false },
@@ -968,7 +965,7 @@ static uint8_t selectedSaver = 0;
 
 static uint8_t loadSaverIndex() {
   prefs.begin("hackcon", true);
-  uint8_t v = prefs.getUChar("saver", 5);  // default: Sponsors
+  uint8_t v = prefs.getUChar("saver", 5);  // por defecto: Sponsors
   prefs.end();
   if (v >= SAVER_COUNT) v = 5;
   return v;
@@ -980,7 +977,7 @@ static void saveSaverIndex(uint8_t v) {
   prefs.end();
 }
 
-// ===== Boot logo bitmap (Color) =====
+// ===== Bitmap del logo de arranque (Color) =====
 static const int BOOT_LOGO_W = 140;
 static const int BOOT_LOGO_H = 140;
 
@@ -995,24 +992,19 @@ static void drawBootLogoCentered() {
   const int x = (240 - BOOT_LOGO_W) / 2;
   const int y = (240 - BOOT_LOGO_H) / 2 - 2;
 
-  // Draw the image line by line to correct the byte order (Endianness)
   uint16_t lineBuf[BOOT_LOGO_W];
   for (int i = 0; i < BOOT_LOGO_H; i++) {
     for (int j = 0; j < BOOT_LOGO_W; j++) {
       int idx = (i * BOOT_LOGO_W + j) * 2;
-      // The image converter outputs high byte followed by low byte
       uint8_t hi = bootLogoColor[idx];
       uint8_t lo = bootLogoColor[idx + 1];
-
-      // Reconstruct the 16-bit color correctly
       lineBuf[j] = (hi << 8) | lo;
     }
     tft.drawRGBBitmap(x, y + i, lineBuf, BOOT_LOGO_W, 1);
   }
 }
 
-// ===== Boot splash (Color, 240x240) =====
-// Uses saverBits_boot_sp directly — no duplicate array, saves ~115 KB of flash
+// ===== Splash de arranque (Color, 240x240) =====
 static void drawBootSplash() {
   busForTFT();
   uint16_t lineBuf[240];
@@ -1030,7 +1022,7 @@ static void drawBootSplash() {
   tft.endWrite();
 }
 
-// ======================= Splash =======================
+// ======================= Splash de arranque =======================
 static void bootSequence() {
   drawBootLogoCentered();
   delay(1500);
@@ -1052,7 +1044,6 @@ static void bootSequence() {
 static void foxHuntPollLiveRssi() {
   if (radioProfile != PROFILE_FOX_OOK_RSSI) return;
 
-  // Poll multiple times to catch pulses
   int16_t currentMax = -127;
   for(int i=0; i<4; i++) {
     ccStrobe(CC1101_SIDLE);
@@ -1066,19 +1057,17 @@ static void foxHuntPollLiveRssi() {
   
   lastRssiDbm = currentMax;
 
-  // Smooth for bar movement
   float alpha = 0.25f;
   if (foxSmoothedRssi < -119) foxSmoothedRssi = (float)lastRssiDbm;
   foxSmoothedRssi = (alpha * (float)lastRssiDbm) + ((1.0f - alpha) * foxSmoothedRssi);
 
-  // Peak hold logic (3 seconds)
   if ((float)lastRssiDbm > foxMaxRssi || (millis() - foxMaxMs > 3000)) {
     foxMaxRssi = (float)lastRssiDbm;
     foxMaxMs = millis();
   }
 }
 
-// ===== FastLED show throttle =====
+// ===== Limitador de actualizaciones FastLED =====
 static bool     ledsDirty = false;
 static uint32_t ledsLastShowMs = 0;
 
@@ -1099,7 +1088,7 @@ static inline void ledsCommitIfNeeded() {
   ledsDirty = false;
 }
 
-// ===== Power Led =====
+// ===== LED de energía =====
 static void powerLedsTick() {
   const uint32_t IDLE_DIM_MS = 10000;
 
@@ -1108,7 +1097,6 @@ static void powerLedsTick() {
   if (idle && !ledsSuspended) {
     ledsSuspended = true;
 
-    // Adapt idle brightness based on user's current valid brightness
     uint8_t idleBright = 0;
     if (ledBrightness >= 30) {
       idleBright = 20;
@@ -1129,7 +1117,7 @@ static void powerLedsTick() {
   }
 }
 
-// ======================= LED THEMES + LED SETS =======================
+// ======================= TEMAS LED + SETS LED =======================
 enum LedTheme : uint8_t {
   THEME_NEON = 0,
   THEME_RGB,
@@ -1183,8 +1171,8 @@ static void saveLedSetPrincipal(LedSet s) {
 
 static CRGB themeColor(uint8_t idx) {
   if (mode == MODE_FOX_HUNT) {
-    // Recalibrated for event: 1-2 meters + backpack attenuation
-    // -105 (Blue: nothing) -> -85 (Green: walk closer) -> -55 (Red: You found them!)
+    // Recalibrado para el evento: 1-2 metros + atenuación de mochila
+    // -105 (Azul: nada) -> -85 (Verde: acércate) -> -55 (Rojo: ¡los encontraste!)
     int16_t r = constrain(lastRssiDbm, -105, -45);
     uint8_t hue = (uint8_t)map(r, -105, -45, 160, 0);
     return CHSV(hue + (idx * 5), 255, 255);
@@ -1345,7 +1333,7 @@ static LedSet selectLedSetForMode(ScreenMode m) {
   return ledSetPrincipal;
 }
 
-// ======================= BADGE PROFILE (Nick + Role) =======================
+// ======================= PERFIL DEL BADGE (Nick + Role) =======================
 static const char* BADGE_ROLE_NAMES[5] = { "SCRPTK1D", "H4CK3R", "PHR3AK", "R3DT34M", "PWN3D" };
 
 static char badgeNick[8] = "AAAAAAA";
@@ -1402,16 +1390,16 @@ static uint16_t calcSelfShortId() {
   return hash;
 }
 
-// ======================= BOOT SAFE (staged init) =======================
+// ======================= ARRANQUE SEGURO (inicialización por etapas) =======================
 static const uint16_t BOOT_STABILIZE_MS = 800;   
 static const uint16_t BOOT_STAGE_GAP_MS = 180;    
 
-// ======================= Screen Saver variables =======================
+// ======================= Variables del salvapantallas =======================
 static bool systemSuspended = false;    
 static bool screensaverDrawn = false;
 static ScreenMode modeBeforeSaver = MODE_MENU;
 
-// ======================= FRIENDS STORAGE =======================
+// ======================= ALMACENAMIENTO DE FRIENDS =======================
 #define FRIENDS_MAX 32
 
 struct FriendEntry {
@@ -1587,7 +1575,7 @@ static bool storyFlagPage(const char* title, const char* flagText) {
 
 static void storyFoxIntroShow() {
 
-  // Page 1
+  // Página 1
   if (!storyFoxPage(
         "CHAPTER I",
         "THE SIGNAL",
@@ -1598,7 +1586,7 @@ static void storyFoxIntroShow() {
         true
       )) return;
 
-  // Page 2
+  // Página 2
   if (!storyFoxPage(
         "BEARERS",
         "NOT TARGETS",
@@ -1611,7 +1599,7 @@ static void storyFoxIntroShow() {
 }
 
 
-// ======================= QUEST: ALIEN (Hidden Challenge) =======================
+// ======================= QUEST: ALIEN (Desafío oculto) =======================
 #define QUEST_ALIEN_TRIGGER_FRIENDS  5
 #define QUEST_ALIEN_NEED_MIN         5
 #define QUEST_ALIEN_NEED_MAX         5
@@ -1713,7 +1701,7 @@ static bool questAlienOnAlienAdded(uint16_t sid) {
   return false;
 }
 
-// ======================= FRIENDS HISTORY =======================
+// ======================= HISTORIAL DE FRIENDS =======================
 static void questAlertEffect() {
   for (int i=0; i<4; i++) {
     for (uint8_t j=0; j<NUM_LEDS; j++) leds[j] = CRGB::White;
@@ -1726,7 +1714,7 @@ static void questAlertEffect() {
     while (millis() - t0 < 80) {
       screensaverTick();
       powerLedsTick();
-      // ledTick(); // Overwrites alert color
+      // ledTick(); // Sobreescribe el color de alerta
       delay(1);
     }
 
@@ -1740,12 +1728,12 @@ static void questAlertEffect() {
     while (millis() - t0 < 80) {
       screensaverTick();
       powerLedsTick();
-      // ledTick(); // Overwrites alert color
+      // ledTick(); // Sobreescribe el color de alerta
       delay(1);
     }
   }
 
-  // Small delay after the effect so it doesn't clash with the story prompt beep
+  // Pequeña pausa tras el efecto para que no choque con el pitido del story prompt
   uint32_t tEnd = millis();
   while (millis() - tEnd < 600) {
     screensaverTick();
@@ -1757,7 +1745,7 @@ static void questAlertEffect() {
 static void questAlienShowUnlocked() {
   questAlertEffect();
 
-  // Page 1
+  // Página 1
   if (!storyFoxPage(
         "CHAPTER II",
         "THE SECRET",
@@ -1768,7 +1756,7 @@ static void questAlienShowUnlocked() {
         true
       )) return;
 
-  // Page 2
+  // Página 2
   if (!storyFoxPage(
         "CAESARS",
         "FIND HIM",
@@ -1779,7 +1767,7 @@ static void questAlienShowUnlocked() {
         false
       )) return;
 
-  // Page 3
+  // Página 3
   if (!storyFoxPage(
         "REMEMBER",
         "NO HINTS",
@@ -1790,14 +1778,14 @@ static void questAlienShowUnlocked() {
         false
       )) return;
 
-  // Page 4 (FLAG)
+  // Página 4 (FLAG)
   if (!storyFlagPage("FLAG 1 DISCOVERED", "HCRD{B4DGE-S3RC3T}")) return;
 }
 
 static void questAlienShowCompleted() {
   questAlertEffect();
 
-  // Page 1
+  // Página 1
   if (!storyFoxPage(
         "FOUND",
         "CAESARS",
@@ -1808,7 +1796,7 @@ static void questAlienShowCompleted() {
         true
       )) return;
 
-  // Page 2
+  // Página 2
   if (!storyFoxPage(
         "UNLOCKED",
         "KEY ACQUIRED",
@@ -1819,13 +1807,13 @@ static void questAlienShowCompleted() {
         false
       )) return;
 
-  // Page 3 (FLAG)
+  // Página 3 (FLAG)
   if (!storyFlagPage("FLAG 2 DISCOVERED", "HCRD{CA3S4RS-F0UND}")) return;
 }
 
 static void questKeyShowIntro() {
 
-  // Page 1
+  // Página 1
   if (!storyFoxPage(
         "CHAPTER III",
         "THE KEY",
@@ -1836,7 +1824,7 @@ static void questKeyShowIntro() {
         true
       )) return;
 
-  // Page 2
+  // Página 2
   if (!storyFoxPage(
         "RULES",
         "ONE TRY",
@@ -1847,7 +1835,7 @@ static void questKeyShowIntro() {
         false
       )) return;
 
-  // Page 3
+  // Página 3
   if (!storyFoxPage(
         "NOTICE",
         "NO SHARING",
@@ -1861,7 +1849,7 @@ static void questKeyShowIntro() {
 
 static void storyBoxIntroShow() {
 
-  // Page 1
+  // Página 1
   if (!storyFoxPage(
         "CHAPTER IV",
         "THE BOX",
@@ -1872,7 +1860,7 @@ static void storyBoxIntroShow() {
         true
       )) return;
 
-  // Page 2
+  // Página 2
   if (!storyFoxPage(
         "WARNING",
         "DO NOT OPEN",
@@ -1884,20 +1872,20 @@ static void storyBoxIntroShow() {
       )) return;
 }
 
-// ======================= RF FRIENDS (CC1101 Packet) =======================
-// Transport: CC1101 fixed 9-byte packets (PROFILE_PACKET_GFSK). No BLE/NimBLE.
-// Nickname exchange happens post-handshake (PROFILE frames). Nickname storage/UI is unchanged.
+// ======================= RF FRIENDS (Paquete CC1101) =======================
+// Transporte: paquetes fijos de 9 bytes CC1101 (PROFILE_PACKET_GFSK). Sin BLE/NimBLE.
+// El intercambio de apodos ocurre tras el handshake (frames PROFILE). El almacenamiento/UI de apodos no cambia.
 
 static constexpr uint8_t FRF_MAGIC = 0xF6;
 
 enum FriendsPktType : uint8_t {
-  FRF_HELLO   = 1,   // broadcast "I'm here" (no badgeNick)
-  FRF_REQ     = 2,   // request add
-  FRF_ACK     = 3,   // accept
-  FRF_NACK    = 4,   // reject/busy
+  FRF_HELLO   = 1,   // broadcast "estoy aquí" (sin badgeNick)
+  FRF_REQ     = 2,   // solicitud de añadir
+  FRF_ACK     = 3,   // aceptar
+  FRF_NACK    = 4,   // rechazar/ocupado
 };
 
-// ---- Scan cache (used by Friends Scan UI) ----
+// ---- Caché de escaneo (usado por la UI de Friends Scan) ----
 static constexpr uint8_t SCAN_HITS_MAX = 32;
 
 struct ScanHit {
@@ -1952,7 +1940,7 @@ static void friendsScanSeen(uint16_t id, uint8_t bro, int8_t rssiDbm = -127) {
     scanHits[idx].bro = bro;
     scanHits[idx].nick[0] = 0;
 
-    // If already friends, copy nick immediately.
+    // Si ya son amigos, copiar el nick inmediatamente.
     const int fidx = friendsIndexById(id);
     if (fidx >= 0) { strncpy(scanHits[idx].nick, friends[fidx].nick, 8); scanHits[idx].nick[8] = 0; }  // BUG7 FIX
   }
@@ -1961,17 +1949,17 @@ static void friendsScanSeen(uint16_t id, uint8_t bro, int8_t rssiDbm = -127) {
   scanHits[idx].lastSeenMs = now;
 }
 
-// ---- RF packet build/parse ----
-// Layout (9 bytes):
+// ---- Construcción/análisis de paquetes RF ----
+// Formato (9 bytes):
 //  [0] magic
-//  [1] type
-//  [2] a (nonce or seq)
-//  [3] bro (role encoding)   (PROFILE: payload byte 0)
-//  [4..5] from (LE)          (PROFILE: payload byte 1..2)
-//  [6..7] to   (LE)          (PROFILE: payload byte 3..4)
-//  [8] data                  (PROFILE: payload byte 5)
+//  [1] tipo
+//  [2] a (nonce o secuencia)
+//  [3] bro (codificación de role)   (PROFILE: byte de payload 0)
+//  [4..5] from (LE)                 (PROFILE: bytes de payload 1..2)
+//  [6..7] to   (LE)                 (PROFILE: bytes de payload 3..4)
+//  [8] data                         (PROFILE: byte de payload 5)
 //
-// Note: PROFILE repurposes bytes [3..8] as 6 payload bytes (two chunks carry badgeNick[8]).
+// Nota: PROFILE reutiliza los bytes [3..8] como 6 bytes de payload (dos bloques transportan badgeNick[8]).
 
 static void frfBuild(uint8_t out[32], uint8_t t, uint16_t from, uint16_t to,
                      uint8_t a, uint8_t bro, uint8_t data) {
@@ -1984,10 +1972,10 @@ static void frfBuild(uint8_t out[32], uint8_t t, uint16_t from, uint16_t to,
   out[5] = (uint8_t)(from >> 8);
   out[6] = (uint8_t)(to & 0xFF);
   out[7] = (uint8_t)(to >> 8);
-  // data is now unused but kept in sig for backwards compat, put in out[8] 
+  // data ya no se usa pero se conserva en la firma para compatibilidad, se escribe en out[8]
   out[8] = data;
-  
-  // Copy badgeNick (char[8]) to out[9..16]; zero-fill the remaining 6 bytes
+
+  // Copiar badgeNick (char[8]) a out[9..16]; rellenar con ceros los 6 bytes restantes
   memcpy((char*)&out[9], badgeNick, 8);
   memset((char*)&out[17], 0, 6);
 }
@@ -2009,7 +1997,7 @@ static bool frfParse(const uint8_t p[32], uint8_t &t, uint16_t &from, uint16_t &
   return true;
 }
 
-// ---- RX bridging (reuse existing CC1101 RX ring) ----
+// ---- Puente RX (reutiliza el anillo RX CC1101 existente) ----
 
 static void frfRxService() { rflRxService(); }
 
@@ -2017,7 +2005,7 @@ static bool frfRxPop(RFL_RxFrame &out) {
   return rflRxPop(out);
 }
 
-// ---- Request/prompt state ----
+// ---- Estado de solicitud/prompt ----
 static uint32_t frfHelloNextMs = 0;
 
 static uint16_t lastIncomingReqFrom = 0;
@@ -2039,7 +2027,7 @@ static uint8_t  frfOutReqNonce = 0;
 
 
 
-// ---- TX helpers ----
+// ---- Funciones auxiliares TX ----
 static inline uint8_t frfMakeNonce() {
   uint8_t n = (uint8_t)(esp_random() & 0xFF);
   return (n == 0) ? 1 : n;
@@ -2078,9 +2066,9 @@ static void frfSendNackTo(uint16_t to, uint8_t nonce) {
   frfBuild(p, FRF_NACK, selfShortId, to, nonce, broEncode(badgeRole), 0);
   frfSend(p);
 }
-// ---- TX helpers ----
+// ---- Funciones auxiliares TX (fin) ----
 
-// ---- Hello scheduler ----
+// ---- Planificador de Hello ----
 static void frfEnsureHello() {
   if (radioProfile != PROFILE_FRIENDS_GFSK_32B) return;
   const uint32_t now = millis();
@@ -2089,7 +2077,7 @@ static void frfEnsureHello() {
   frfSendHello();
 }
 
-// ---- Background processing ----
+// ---- Procesamiento en segundo plano ----
 static void frfBackgroundTick() {
   frfRxService();
 
@@ -2103,7 +2091,7 @@ static void frfBackgroundTick() {
     if (from == 0 || from == selfShortId) continue;
 
     if (t == FRF_HELLO) {
-      if (fr.rssiDbm >= -70) { // Only show badges that are close! LBT proximity filter
+      if (fr.rssiDbm >= -70) { // ¡Solo mostrar badges cercanos! Filtro de proximidad LBT
         friendsScanSeen(from, bro, fr.rssiDbm);
         if (rxNick[0]) friendsScanNick(from, rxNick);
       }
@@ -2119,13 +2107,11 @@ static void frfBackgroundTick() {
         continue;
       }
 
-      // BUG2 FIX: rechazar si ya estamos manejando un prompt, esperando ACK, o ya hay un REQ pendiente
       if (mode == MODE_FRIEND_REQ_PROMPT || mode == MODE_FRIENDS_REQUESTING) {
         frfSendNackTo(from, a);
         continue;
       }
 
-      // BUG3 FIX: si ya hay un REQ pendiente sin resolver, rechazar el nuevo
       if (frfSeenReq) {
         frfSendNackTo(from, a);
         continue;
@@ -2137,13 +2123,13 @@ static void frfBackgroundTick() {
       frfReqNonce = a;
       frfReqBro = bro;
 
-      // Use the nick directly from the request frame
+      // Usar el nick directamente del frame de solicitud
       frfReqNick[0] = 0;
       if (rxNick[0]) {
           strncpy(frfReqNick, rxNick, 8);
           frfReqNick[8] = 0;
       } else {
-        // fallback: short id as hex (no UI changes, just data)
+        // fallback: ID corto en hexadecimal (sin cambios en UI, solo datos)
         snprintf(frfReqNick, sizeof(frfReqNick), "%04X", (unsigned)from);
       }
 
@@ -2169,7 +2155,7 @@ static void frfBackgroundTick() {
     }
   }
 
-  // Outgoing request retry handled entirely in loop() via resendIntervals
+  // El reintento de solicitudes salientes se gestiona íntegramente en loop() via resendIntervals
 }
 
 // =====================================================
@@ -2183,7 +2169,7 @@ static void frfBackgroundTick() {
 #define max(a,b) ((a)>(b)?(a):(b))
 #endif
 
-// ---------- Self ID (1 byte) ----------
+// ---------- ID propio (1 byte) ----------
 static inline uint8_t rflSelfId() {
   return selfShortId;
 }
@@ -2214,7 +2200,7 @@ static bool rflTx(uint8_t lesson, RFL_MsgType type, uint8_t target, bool statefu
 }
 
 // =====================================================
-// TX scheduler (non-blocking UX): queue + repeats + gaps
+// Planificador TX (UX no bloqueante): cola + repeticiones + pausas
 // =====================================================
 
 struct RFL_TxReq {
@@ -2239,9 +2225,9 @@ static void rflTxqClear() {
   rfl_txqHead = rfl_txqTail = 0;
 }
 
-// Coalesce policy: for the same (lesson,type,from,target) keep only the newest payload.
+// Política de coalescencia: para la misma (lección,tipo,origen,destino) conservar solo el payload más reciente.
 static bool rflTxqCoalesce(const uint8_t p[9], uint8_t repeats, uint16_t gapMs) {
-  // key = bytes 1..4 (lesson,type,from,target)
+  // clave = bytes 1..4 (lección,tipo,origen,destino)
   uint8_t i = rfl_txqHead;
   while (i != rfl_txqTail) {
     if (rfl_txq[i].active &&
@@ -2265,7 +2251,7 @@ static bool rflTxEnqueuePayload(const uint8_t p[9], uint8_t repeats, uint16_t ga
 
   uint8_t nextTail = rflTxqNext(rfl_txqTail);
   if (nextTail == rfl_txqHead) {
-    // queue full -> drop oldest
+    // cola llena -> descartar el más antiguo
     rfl_txqHead = rflTxqNext(rfl_txqHead);
   }
 
@@ -2290,7 +2276,7 @@ static bool rflTxRequest(uint8_t lesson, RFL_MsgType type, uint8_t target,
   return rflTxEnqueuePayload(p, repeats, gapMs);
 }
 
-// For replay: enqueue an already-built 9B frame (e.g., captured packet).
+// Para replay: encolar un frame de 9 bytes ya construido (p. ej., paquete capturado).
 static bool rflTxRequestRaw9(const uint8_t payload9[9], uint8_t repeats = 1, uint16_t gapMs = 0) {
   return rflTxEnqueuePayload(payload9, repeats, gapMs);
 }
@@ -2304,7 +2290,6 @@ static void rflTxTick() {
   if (!q.active) { rfl_txqHead = rflTxqNext(rfl_txqHead); return; }
   if (now < q.nextMs) return;
 
-  // Send 1 packet, then schedule next (stay RX-dominant).
   ccSendFixed9(q.payload);
 
   if (q.remaining > 0) q.remaining--;
@@ -2332,7 +2317,7 @@ static bool downHoldDetect(uint16_t holdMs) {
   return false;
 }
 
-// Layout 240x240 (match Main Menu box size)
+// Layout 240x240 (coincide con el tamaño del cuadro del Menú Principal)
 static const int BOX_X = 10;
 static const int BOX_Y = 42;
 static const int BOX_W = 220;
@@ -2388,7 +2373,7 @@ static void rflTitleSubInBox(const char* title) {
 }
 
 // =====================================================
-// 2) Peer detection + last RX decoded
+// 2) Detección de peers + último RX decodificado
 // =====================================================
 
 
@@ -2430,7 +2415,7 @@ static void l1ApplyMode() {
 }
 
 // =====================================================
-// 4) Lesson 3 stats + Lesson 4 capture + Lesson 5 anti-replay
+// 4) Estadísticas Lección 3 + captura Lección 4 + anti-replay Lección 5
 // =====================================================
 
 // L3
@@ -2438,7 +2423,7 @@ static uint32_t l3_rxOk = 0;
 static uint32_t l3_missWin = 0;
 static uint32_t l3_lastRxMs = 0;
 
-// L4 capture
+// L4 captura
 static const uint8_t CAP_MAX = 4;
 static RFL_RxFrame capBuf[CAP_MAX];
 static uint8_t capLen = 0;
@@ -2446,19 +2431,19 @@ static bool capArmed = false;
 static uint32_t capArmMs = 0;
 static const uint32_t CAP_WIN_MS = 6000;
 
-// Selection in capture list
+// Selección en la lista de capturas
 static uint8_t capSel = 0;
 static bool capFrozen = false;
 
-// L3 verdict display (TX)
+// Visualización de veredicto L3 (TX)
 static char l3_crcMsg[12] = "----"; // "TX OK" / "TX COMP"
 
 // L5
 
-// L5 access control UI
+// UI de control de acceso L5
 static uint32_t l5_accessMs = 0;
 static char l5_accessLine1[20] = "";
-static char l5_accessLine2[20] = ""; // optional FLAG line
+static char l5_accessLine2[20] = ""; // línea FLAG opcional
 static uint8_t l5_target_id = 0;
 
 static void rflResetL5(bool preserveCapture) {
@@ -2514,8 +2499,8 @@ static void l5AccessEffect(bool granted) {
 }
 
 static bool rflParse(const RFL_RxFrame &f) {
-  // Allow corrupted frames to be observed (learning/capture),
-  // but ignore anything that doesn't look like our protocol.
+  // Permitir observar frames corruptos (aprendizaje/captura),
+  // pero ignorar cualquier cosa que no parezca nuestro protocolo.
   if (f.payload[0] != RFL_MAGIC) return false;
 
   rflLastFlag     = f.payload[1];
@@ -2529,8 +2514,6 @@ static bool rflParse(const RFL_RxFrame &f) {
   rflLastLqi      = f.lqi;
   rflHaveRx       = true;
 
-  // L3 verdict: normal TX vs replay (compromised)
-    // L3 verdict: TX OK vs compromised (replay)
   strncpy(l3_crcMsg, (f.payload[2] == (uint8_t)RFL_REPLAY) ? "TX COMP" : "TX OK", sizeof(l3_crcMsg));
   if (capArmed && !capFrozen) {
     if (capLen < CAP_MAX) {
@@ -2541,7 +2524,6 @@ static bool rflParse(const RFL_RxFrame &f) {
   }
 
 
-  // Receiver logic (Victim): detect replay while in L4
   if (rflab == RFL_L4) {
     if (rflLastType == RFL_REPLAY) {
       uint8_t self = rflSelfId();
@@ -2552,7 +2534,7 @@ static bool rflParse(const RFL_RxFrame &f) {
         l5_accessMs = millis();
         l5AccessEffect(true);
 
-        // Inform the attacker that the replay was successful by broadcasting an ACK burst
+        // Informar al atacante que el replay fue exitoso enviando una ráfaga de ACK en broadcast
         rflTxRequest(4, RFL_REPLAY_ACK, RFL_BCAST, false, 0x00, 4, 80);
       } else {
         strncpy(l5_accessLine1, "ACCESS DENIED", sizeof(l5_accessLine1));
@@ -2563,10 +2545,8 @@ static bool rflParse(const RFL_RxFrame &f) {
     }
   }
 
-  // Attacker logic (Attacker): listen for the victim's reaction in L5
   if (rflab == RFL_L5) {
-     if (rflLastType == RFL_REPLAY_ACK && l5_accessLine1[0] == 'W') { 
-        // Verificamos que el ACK sea genuinamente de la placa a la que intentamos hacer Replay
+     if (rflLastType == RFL_REPLAY_ACK && l5_accessLine1[0] == 'W') {
         if (rflLastFrom == l5_target_id) {
           strncpy(l5_accessLine1, "ACCESS GRANTED", sizeof(l5_accessLine1));
           strncpy(l5_accessLine2, "CONGRATS!", sizeof(l5_accessLine2));
@@ -2590,7 +2570,7 @@ static void rflRxTick() {
 }
 
 // =====================================================
-// 3) Intro
+// 3) Introducción
 // =====================================================
 
 static const char* RFLAB_GUIDE_URL = "https://hackconrd.org/";
@@ -2669,7 +2649,7 @@ static void rflDrawQrScreen(const char* text) {
 }
 
 // =====================================================
-// 3) Lesson 1: Spectrum scan (live)
+// 3) Lección 1: Escaneo de espectro (en vivo)
 // =====================================================
 static const uint8_t  SCAN_BINS = 20;
 static int16_t  scanRssiDbm[SCAN_BINS];
@@ -2678,8 +2658,6 @@ static uint8_t  scanPos = 0;
 static const uint32_t SCAN_START_HZ = 433720000UL;
 static const uint32_t SCAN_STEP_HZ  = 20000UL;
 
-// Tu firmware ya tenía esto: ccSetFrequencyMHz100(mhz*100)
-// Si se llama distinto, cambia SOLO esta declaración/llamada.
 extern void ccSetFrequencyMHz100(uint32_t mhz100);
 
 static inline void rflSetFreqHz(uint32_t hz) {
@@ -2722,7 +2700,7 @@ static void rflScanTick() {
 }
 
 // =====================================================
-// 5) Draw screens (no freeze; always live)
+// 5) Dibujar pantallas (sin congelar; siempre en vivo)
 // =====================================================
 static void rflDrawMenu() {
   rflDrawHeader("Learning");
@@ -2751,7 +2729,6 @@ static void rflDrawMenu() {
 
 
 static void rflDrawL1() {
-  // RX mode: spectrum scan live
   if (!l1_txMode) {
     rflScanTick();
 
@@ -2792,7 +2769,6 @@ static void rflDrawL1() {
     rflPrintAt(PANEL_X()+12, PANEL_Y()+PANEL_H()-16, 1, COLDIM, r);
     return;
   }
-  // TX mode: gamified single centered message
   busForTFT();
   tft.fillRect(PANEL_X()+10, PANEL_Y()+10, PANEL_W()-20, PANEL_H()-20, COLBLACK);
 
@@ -2826,7 +2802,6 @@ static void rflDrawL3() {
   busForTFT();
   tft.fillRect(PANEL_X()+10, PANEL_Y()+10, PANEL_W()-20, PANEL_H()-20, COLBLACK);
 
-  // Single integrity verdict
   int y = PANEL_Y() + (PANEL_H()/2) - 10;
   uiMsgCenter(l3_crcMsg, y, (strcmp(l3_crcMsg, "TX OK") == 0) ? COLNEON : COLRED, 2);
 }
@@ -2852,7 +2827,6 @@ static void rflDrawL4() {
     rflPrintAt(PANEL_X()+12, PANEL_Y()+28, 1, COLDIM, "Last: (none)");
   }
 
-    // show up to 5 items, keep selected visible
   uint8_t showMax = 4;
   uint8_t start = 0;
   if (capLen > showMax && capSel >= showMax) start = capSel - (showMax - 1);
@@ -2867,7 +2841,6 @@ static void rflDrawL4() {
     rflPrintAt(PANEL_X()+12, y, 1, (i==capSel)?COLNEON:COLDIM, li);
     y += 10;
   }
-  // Access result (shown when a REPLAY is received as a victim)
   if (l5_accessLine1[0] && millis() - l5_accessMs < 4000) {
     int yy = PANEL_Y() + 55;
     uiMsgCenter(l5_accessLine1, yy, COLNEON, 2);
@@ -2879,7 +2852,6 @@ static void rflDrawL5() {
   busForTFT();
   tft.fillRect(PANEL_X()+10, PANEL_Y()+10, PANEL_W()-20, PANEL_H()-20, COLBLACK);
 
-  // Source selection
   if (capLen > 0) {
     uint8_t idx = (capSel < capLen) ? capSel : 0;
     const uint8_t *p = capBuf[idx].payload;
@@ -2890,7 +2862,6 @@ static void rflDrawL5() {
     rflPrintAt(PANEL_X()+12, PANEL_Y()+14, 1, COLDIM, "Replay src: (none)");
   }
 
-  // Access result (shown when a REPLAY is received)
   if (l5_accessLine1[0]) {
     int y = PANEL_Y() + 45;
     uiMsgCenter(l5_accessLine1, y, COLNEON, 2);
@@ -2973,7 +2944,7 @@ static inline void rflClearPanelInner() {
 
 
 // =====================================================
-// 6) Navigation init
+// 6) Inicialización de navegación
 // =====================================================
 static void rflGo(RFLabPhase2 p);
 
@@ -2989,7 +2960,6 @@ static void rflGo(RFLabPhase2 p) {
   
   beep(10);
 
-  // Keep RX always
   busForRF();
   ccStrobe(CC1101_SRX);
 
@@ -3022,7 +2992,7 @@ static void rflGo(RFLabPhase2 p) {
 }
 
 // =====================================================
-// 7) Public API: enter/draw/tick
+// 7) API pública: enter/draw/tick
 // =====================================================
 static void learningEnter() {
   rflab = RFL_MENU;
@@ -3043,26 +3013,25 @@ static void learningDraw() {;
   if (now - rflLastDrawMs < RFL_DRAW_MS) return;
   rflLastDrawMs = now;
   
-  // ---- One-time full redraw when screen changes ----
+  // ---- Redibujo completo de una sola vez al cambiar de pantalla ----
   if (rflab != rflPrev) {
     rflPrev = rflab;
     rflStaticDrawn = false;
   }
 
   if (!rflStaticDrawn) {
-    rflDrawStaticForCurrent();   // <- este hace rflDrawHeader() y limpia
+    rflDrawStaticForCurrent();  
     rflStaticDrawn = true;
   }
 
   if (rflab == RFL_L1 && l1_txActive) {
      if (millis() - l1_txActiveMs > 250) {
-       l1_txActive = false; // Turn off the neon flash after 250ms
+       l1_txActive = false; // Apagar el destello neón tras 250ms
      }
   }
 
   if (rflab == RFL_L5) {
      if (l5_accessLine1[0] == 'W' && millis() - l5_accessMs > 2500) {
-        // Timeout waiting for victim
         strncpy(l5_accessLine1, "ACCESS DENIED", sizeof(l5_accessLine1));
         l5_accessLine2[0] = 0;
         l5AccessEffect(false);
@@ -3075,11 +3044,10 @@ static void learningDraw() {;
       l3_missWin++;
       l3_lastRxMs = now;
     }
-    // Count RX_OK only for lesson 3 frames (now using type to distinguish, or we can check type)
+    // Contar RX_OK solo para frames de la lección 3 (usando tipo para distinguir)
     if (rflHaveRx && rflLastType != RFL_BEACON) {
       l3_rxOk++;
       l3_lastRxMs = now;
-      // prevent double-count on same drawn frame
       rflHaveRx = false;
     }
   }
@@ -3103,18 +3071,17 @@ static void learningDraw() {;
 }
 
 static void learningTick(const ButtonsEdge& b) {
-  // Always service RF (RX-dominant + non-blocking TX scheduler)
   rflRxTick();
   rflTxTick();
 
-  // ======================= MENU =======================
+  // ======================= MENÚ =======================
   if (rflab == RFL_MENU) {
     if (b.ok)   { rflGo(RFL_INTRO); learningDraw(); return; }
     if (b.back) { rfPowerDown(); goTo(MODE_MENU); return; }
     return;
   }
 
-  // ======================= INTRO =======================
+  // ======================= INTRODUCCIÓN =======================
   if (rflab == RFL_INTRO) {
     if (b.ok)   { rflGo(RFL_QR); learningDraw(); return; }
     if (b.back) { rflGo(RFL_MENU); learningDraw(); return; }
@@ -3128,9 +3095,8 @@ static void learningTick(const ButtonsEdge& b) {
     return;
   }
 
-  // ======================= LESSON NAV =======================
+  // ======================= NAVEGACIÓN DE LECCIONES =======================
   if (rflab >= RFL_L1 && rflab <= RFL_L5) {
-    // OK / BACK navigation
     if (b.ok) {
       if (rflab == RFL_L4 && capLen == 0) {
         beep(50);
@@ -3153,7 +3119,6 @@ static void learningTick(const ButtonsEdge& b) {
 
     // ======================= L1 =======================
     if (rflab == RFL_L1) {
-      // HOLD DOWN => toggle RX/TX
       if (downHoldDetect(700)) {
         l1_txMode = !l1_txMode;
         l1ApplyMode();
@@ -3165,12 +3130,9 @@ static void learningTick(const ButtonsEdge& b) {
 
       if (b.up) {
         if (l1_txMode) {
-          // Temporizador para el destello visual de la UI
-          l1_txActive = true;
+            l1_txActive = true;
           l1_txActiveMs = millis();
 
-          // Non-blocking burst (scheduler). Byte 1 sends Flag 0x26 (HackCon 26) instead of lesson 1
-          // Byte 7 sends 0x48 (The ASCII letter 'H' for HackCon)
           rflTxRequest(0x26, RFL_BEACON, rflSelfId(), false, 0x48, L1_TXREPEATS, L1_TXGAPMS);
           beep(10);
         } else {
@@ -3202,7 +3164,7 @@ static void learningTick(const ButtonsEdge& b) {
         rflLastRssi = -127;
         rflLastLqi = 0;
 
-        rflTxqClear(); // cancel any pending transmissions
+        rflTxqClear(); // cancelar transmisiones pendientes
         beep(8);
         learningDraw();
         return;
@@ -3215,7 +3177,6 @@ static void learningTick(const ButtonsEdge& b) {
 
     // ======================= L3 =======================
     if (rflab == RFL_L3) {
-      // L3 shows whether the last RX looks normal or replayed (compromised).
       if (b.down) {
         strncpy(l3_crcMsg, "----", sizeof(l3_crcMsg));
         beep(8);
@@ -3237,7 +3198,6 @@ static void learningTick(const ButtonsEdge& b) {
         return;
       }
 
-      // DOWN tap => selection manual (cycle)
       if (b.down) {
         if (capLen > 0) {
           capSel = (uint8_t)((capSel + 1) % capLen);
@@ -3249,7 +3209,6 @@ static void learningTick(const ButtonsEdge& b) {
         return;
       }
 
-      // UP tap => arm capture window
       if (b.up) {
         capLen = 0;
         capSel = 0;
@@ -3268,12 +3227,11 @@ static void learningTick(const ButtonsEdge& b) {
 
     // ======================= L5 =======================
     if (rflab == RFL_L5) {
-      // DOWN tap => clear/reset capture buffer (and access banner)
       if (b.down) {
         capLen = 0;
         capSel = 0;
         capFrozen = false;
-        capArmed = false; // L5 never captures live
+        capArmed = false; // L5 nunca captura en vivo
         l5_accessLine1[0] = 0;
         l5_accessLine2[0] = 0;
         rflTxqClear();
@@ -3282,7 +3240,6 @@ static void learningTick(const ButtonsEdge& b) {
         return;
       }
 
-      // UP replays the selected capture (selected in L4)
       if (b.up) {
         if (capLen == 0) {
           strncpy(l5_accessLine1, "NO CAPTURE", sizeof(l5_accessLine1));
@@ -3298,13 +3255,11 @@ static void learningTick(const ButtonsEdge& b) {
         memcpy(p, capBuf[idx].payload, 9);
         p[2] = (uint8_t)RFL_REPLAY;
 
-        // Non-blocking replay burst
         rflTxRequestRaw9(p, L1_TXREPEATS, L1_TXGAPMS);
 
-        // Simulamos la lógica para el atacante que evalúa si robó correctamente una identidad (replayedFrom != my_id)
         uint8_t replayedFrom = p[3];
         if (replayedFrom != rflSelfId()) {
-          l5_target_id = replayedFrom; // Guardamos registro explícito a quién atacamos
+          l5_target_id = replayedFrom;
           strncpy(l5_accessLine1, "WAITING...", sizeof(l5_accessLine1));
           l5_accessLine2[0] = 0;
           l5_accessMs = millis();
@@ -3323,7 +3278,6 @@ static void learningTick(const ButtonsEdge& b) {
       return;
     }
 
-    // Fallback
     learningDraw();
     return;
   }
@@ -3359,7 +3313,6 @@ static void drawTheBox() {
     tft.print(c);
   }
 
-  // Cursor tipo underline
   int cx = baseX + (boxCodePos * stepX);
   tft.drawFastHLine(cx, 140, 22, COLNEON);
 
@@ -3389,7 +3342,7 @@ static inline char keyPairsChar(uint8_t i) {
 
 static uint8_t keyPairOrder[3] = {0,1,2}; 
 
-// ===================== helpers =====================
+// ===================== auxiliares =====================
 
 static void keyClearInput() {
   for (uint8_t i = 0; i < 6; i++) keyInput[i] = '0';
@@ -3442,14 +3395,14 @@ static bool keyIsCorrectInCurrentOrder() {
   return true;
 }
 
-// ===================== anim "crypto-ish" =====================
+// ===================== animación estilo "cripto" =====================
 
 static char randDecryptChar() {
   const char set[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#$%*+-";
   return set[random8(sizeof(set)-1)];
 }
 
-// ===== THE KEY layout constants (match drawTheKey) =====
+// ===== Constantes de layout de THE KEY (coinciden con drawTheKey) =====
 static const int KEY_BOX_X = 10;
 static const int KEY_BOX_Y = 78;
 static const int KEY_BOX_W = 220;
@@ -3494,7 +3447,7 @@ static void keyDecryptAnimationThenMessage(const char* finalMsg, uint16_t finalC
   beep(20);
 }
 
-// ===================== entry + draw tick =====================
+// ===================== entrada + tick de dibujo =====================
 static void keyEnterModule() {
   keyClearInput();
 
@@ -3513,7 +3466,7 @@ static void keyDrawTick() {
   keyDrawInCodeArea(view, COLWHITE, 3);
 }
 
-// ======================= MENU / SETTINGS / FOX HUNT / FRIENDS =======================
+// ======================= MENÚ / AJUSTES / FOX HUNT / FRIENDS =======================
 static bool loadKeyVerified() {
   prefs.begin("hackcon", true);
   bool v = prefs.getBool("k_ok", false);
@@ -3531,7 +3484,7 @@ static uint8_t menuIndex = 0;
 static inline bool keyUnlocked() { return questAlienDone; }
 
 static inline uint8_t menuCount() {
-  return keyUnlocked() ? 7 : 6;
+  return keyUnlocked() ? 7 : 6; 
 }
 
 static inline const char* menuItem(uint8_t i) {
@@ -3636,8 +3589,7 @@ static void drawMenu() {
   uiFooter("UP/DOWN move   OK select");
 }
 
-// ======================= Screen saver =======================
-// (BLE removed)
+// ======================= Salvapantallas =======================
 
 static inline bool rfWantedForMode(ScreenMode m) {
   return (m == MODE_FOX_HUNT || m == MODE_LEARNING || m == MODE_THE_BOX ||
@@ -3664,9 +3616,9 @@ static void rfEnsureForMode(ScreenMode m) {
 }
 
 
-// ======================= BOOT TO SAVER =======================
-static bool bootToSaverDone  = false;     
-static bool bootToSaverActive = false;    
+// ======================= ARRANQUE A SALVAPANTALLAS =======================
+static bool bootToSaverDone  = false;
+static bool bootToSaverActive = false;
 
 
 static void enterBootToSaver() {
@@ -3700,7 +3652,7 @@ static void exitBootToSaver() {
   goTo(MODE_MENU); 
 }
 
-// ======================= SCREENSAVER (STATIC) =======================
+// ======================= SALVAPANTALLAS (ESTÁTICO) =======================
 
 struct SaverBox {
   int x, y, w, h;
@@ -3760,12 +3712,10 @@ static void drawScreensaverStatic() {
 
   const uint8_t* bits = SAVERS[selectedSaver].bits;
 
-  // Una sola transacción SPI para toda la imagen = máxima velocidad
   uint16_t lineBuf[SAVER_W];
   tft.startWrite();
   tft.setAddrWindow(x, y, SAVER_W, SAVER_H);
   if (SAVERS[selectedSaver].isMono) {
-    // Bitmap 1-bit: expandir a RGB565 con colores del badge
     for (int i = 0; i < SAVER_H; i++) {
       for (int j = 0; j < SAVER_W; j++) {
         int bitPos = i * SAVER_W + j;
@@ -3775,7 +3725,6 @@ static void drawScreensaverStatic() {
       tft.writePixels(lineBuf, SAVER_W);
     }
   } else {
-    // Imagen RGB565: corregir endianness línea a línea
     for (int i = 0; i < SAVER_H; i++) {
       for (int j = 0; j < SAVER_W; j++) {
         int idx = (i * SAVER_W + j) * 2;
@@ -3847,7 +3796,7 @@ static void screensaverTick() {
   }
 }
 
-// ======================= FRIENDS UI =======================
+// ======================= UI DE FRIENDS =======================
 static uint8_t friendsMenuIndex = 0;
 static const char* FRIENDS_MENU_ITEMS[] = { "Add Friends", "Friends List" };
 static const uint8_t FRIENDS_MENU_COUNT = 2;
@@ -3913,7 +3862,7 @@ static void drawFriendsMenu() {
   uiFooter("UP/DOWN sel   OK open   BACK menu");
 }
 
-// ======================= GAMES MENU =======================
+// ======================= MENÚ DE JUEGOS =======================
 static uint8_t gamesMenuIndex = 0;
 static const char* GAMES_MENU_ITEMS[] = { "Dino Run", "Doom Maze", "HackerMon", "Star Invaders" };
 static const uint8_t GAMES_MENU_COUNT = 4;
@@ -3967,7 +3916,6 @@ static void drawFriendsScan() {
     uiTitle("ADD FRIENDS");
   }
 
-  // Draw cyber-border list
   tft.drawRect(FRIENDS_LIST_X, FRIENDS_LIST_Y, FRIENDS_LIST_W, FRIENDS_LIST_H, COLDARK);
 
   uint8_t total = scanHitsCount;
@@ -3986,7 +3934,6 @@ static void drawFriendsScan() {
     }
   }
 
-  // CLEAR BACKGROUND OF THE LIST TO PREVENT STACKING TEXT!
   tft.fillRect(FRIENDS_LIST_X+1, FRIENDS_LIST_Y+1, FRIENDS_LIST_W-2, FRIENDS_LIST_H-2, COLBLACK);
 
   for (uint8_t r=0; r<FRIENDS_VISIBLE_ROWS; r++) {
@@ -3999,13 +3946,11 @@ static void drawFriendsScan() {
     const ScanHit &h = scanHits[idx];
     bool added = (friendsIndexById(h.id) >= 0);
     
-    // Cyberpunk dynamic colors based on RSSI
     uint16_t rowColor = COLDIM;
     if (h.rssiDbm >= -50) rowColor = COLNEON;
     else if (h.rssiDbm >= -75) rowColor = COLDIM;
     else rowColor = COLRED; 
     
-    // selection graphic
     if (sel) {
       tft.fillRoundRect(FRIENDS_LIST_X+6, y-4, FRIENDS_LIST_W-16, 24, 6, COLDARK);
       tft.drawRoundRect(FRIENDS_LIST_X+6, y-4, FRIENDS_LIST_W-16, 24, 6, COLNEON);
@@ -4104,7 +4049,7 @@ static void drawTheKey() {
   const int boxH = 90;
   tft.drawRect(10, boxY, 220, boxH, COLDARK);
 
-  // ===== UNLOCKED VIEW =====
+  // ===== VISTA DESBLOQUEADA =====
   if (keyVerified) {
     tft.setTextSize(1);
     tft.setTextColor(COLDIM);
@@ -4118,7 +4063,7 @@ static void drawTheKey() {
     return;
   }
 
-  // ===== LOCKED (ENTER CODE) VIEW =====
+  // ===== VISTA BLOQUEADA (INGRESAR CÓDIGO) =====
   tft.setTextSize(1);
   tft.setTextColor(COLDIM);
   tft.setCursor(10, 48);
@@ -4203,7 +4148,6 @@ static void drawFriendsList() {
 
 static void drawFriendsDeleteConfirm(const char* nick8) {
   busForTFT();
-  // overlay box
   tft.fillRoundRect(20, 88, 200, 64, 10, COLBLACK);
   tft.drawRoundRect(20, 88, 200, 64, 10, COLNEON);
 
@@ -4223,7 +4167,7 @@ static void drawFriendsDeleteConfirm(const char* nick8) {
   tft.print("OK=yes   BACK=no");
 }
 
-// ======================= Settings editor (extendido) =======================
+// ======================= Editor de ajustes (extendido) =======================
 static uint8_t settingsIndex = 0;
 
 enum SettingsEditMode : uint8_t {
@@ -4700,7 +4644,7 @@ static void updateFoxHuntBar() {
   int r = (int)foxSmoothedRssi;
   int peak = (int)foxMaxRssi;
   
-  // Recalibrated scale: -105 to -45
+  // Escala recalibrada: -105 a -45
   if (r < -105) r = -105;
   if (r > -45)  r = -45;
   if (peak < -105) peak = -105;
@@ -4715,21 +4659,19 @@ static void updateFoxHuntBar() {
   tft.drawRect(barX, barY, barW, barH, COLDARK);
   
   int fillW = (int)((barW-2) * norm);
-  static const uint16_t FOXGREEN = 0x07E0; // Fixed neon green — never changes with theme
+  static const uint16_t FOXGREEN = 0x07E0; // Verde neón fijo — nunca cambia con el tema
   uint16_t color = FOXGREEN;
-  if (r > -65) color = COLRED;       // Near (Hot)
-  else if (r > -85) color = FOXGREEN; // Getting close (Warm) — always green
-  else color = COLCYAN;              // Far (Cold)
+  if (r > -65) color = COLRED;       // Cerca (Caliente)
+  else if (r > -85) color = FOXGREEN; // Aproximándose (Tibio) — siempre verde
+  else color = COLCYAN;              // Lejos (Frío)
 
   tft.fillRect(barX+1, barY+1, fillW, barH-2, color);
   tft.fillRect(barX+1+fillW, barY+1, (barW-2)-fillW, barH-2, COLBLACK);
 
-  // Peak line (vertical white line)
   int px = barX+1 + (int)((barW-2)*pNorm);
   if (px > barX+barW-2) px = barX+barW-2;
   tft.drawFastVLine(px, barY+1, barH-2, COLWHITE);
 
-  // Text values (use specific area fill to reduce flicker)
   tft.fillRect(16, 132, 120, 26, COLBLACK);
   tft.setTextSize(2);
   tft.setTextColor(color);
@@ -4743,35 +4685,31 @@ static void updateFoxHuntBar() {
   tft.print("PEAK: "); tft.print(peak);
 }
 
-// ======================= GAMES =======================
+// ======================= JUEGOS =======================
 #include "games/Dino.h"
 #include "games/Maze.h"
 #include "games/HackerMon.h"
 #include "games/StarInvaders.h"
 
-// ======================= UI control =======================
+// ======================= Control de UI =======================
 static void goTo(ScreenMode m, bool skipIntro) {
   const ScreenMode prevMode = mode;
   const bool prevRf = rfWantedForMode(prevMode);
 
-  // Stop game audio when leaving a game mode
   if (prevMode == MODE_DINO)           { dinoMusicStop();  buzzerNoTone(); }
   if (prevMode == MODE_MAZE)           { gameMusicStop();  buzzerNoTone(); }
   if (prevMode == MODE_HACKMON)        { pkmMusicStop();   buzzerNoTone(); }
   if (prevMode == MODE_STAR_INVADERS) { siMusicStop();    buzzerNoTone(); }
 
-  // Change mode first (UI uses this)
   mode = m;
   currentLedSet = selectLedSetForMode(mode);
 
-  // BUG3/BUG4 FIX: marcar reset de statics al entrar ciertos modos
   if (m == MODE_FRIENDS_SCAN)       frfScanNeedReset = true;
   if (m == MODE_FRIENDS_LIST)       frfListNeedReset = true;
   if (m == MODE_FRIENDS_REQUESTING) frfReqNeedReset  = true;
 
   const bool isRf = rfWantedForMode(mode);
 
-  // Decide RF profile BEFORE enforcing RF policy
   if (mode == MODE_FOX_HUNT) {
     radioProfile = PROFILE_FOX_OOK_RSSI;
   } else if (mode == MODE_LEARNING) {
@@ -4779,23 +4717,16 @@ static void goTo(ScreenMode m, bool skipIntro) {
   } else if (frfWantedForMode(mode)) {
     radioProfile = PROFILE_FRIENDS_GFSK_32B;
   }
-  // Enforce radio policy:
-  // - CC1101 active in Friends, Fox Hunting, and Learning
-
-  // Show OFF transitions before shutting down.
   if (!systemSuspended) {
     if (prevRf && !isRf) uiFlashStatus("RADIO", "RX OFF", 800);
   }
 
-  // Apply power state changes (these must be the ONLY places that turn radios on/off)
   rfEnsureForMode(mode);
 
-  // Show ON transitions after enabling.
   if (!systemSuspended) {
     if (!prevRf && isRf) uiFlashStatus("RADIO", "RX ON", 800);
   }
 
-  // Draw / enter modules
   if (mode == MODE_MENU) {
     drawMenu();
 
@@ -4839,7 +4770,7 @@ static void goTo(ScreenMode m, bool skipIntro) {
 
   } else if (mode == MODE_LEARNING) {
     lastActivityMs = millis();
-    // RF is handled by rfEnsureForMode(); do NOT ccWake/ccApplyProfile here.
+    // RF gestionado por rfEnsureForMode(); NO llamar ccWake/ccApplyProfile aquí.
     learningEnter();
 
   } else if (mode == MODE_FIRST_BOOT) {
@@ -4907,7 +4838,6 @@ void setup() {
   pinMode(PUSH3PIN, INPUT);
   pinMode(PUSH4PIN, INPUT);
 
-  // SPI bus
   pinMode(RF_CS_PIN, OUTPUT);
   digitalWrite(RF_CS_PIN, HIGH);
   pinMode(TFT_CS, OUTPUT);
@@ -4921,13 +4851,12 @@ void setup() {
   tft.setRotation(3);
   tft.fillScreen(COLBLACK);
 
-  applyUiTheme(loadUiTheme()); // Apply loaded UI Theme early for boot sequence
+  applyUiTheme(loadUiTheme()); // Aplicar tema de UI cargado antes de la secuencia de arranque
 
   bootSequence();      
 
   delay(BOOT_STABILIZE_MS);
 
-  // LEDs: init quieto
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
   FastLED.setMaxPowerInVoltsAndMilliamps(5, LED_MAX_MA);
   FastLED.setBrightness(0);
@@ -4935,7 +4864,6 @@ void setup() {
   delay(BOOT_STAGE_GAP_MS);
 
 
-  // cargar NVS
   ledBrightness   = loadLedBrightness();
   ledTheme        = loadLedTheme();
   ledSetPrincipal = loadLedSetPrincipal();
@@ -4966,7 +4894,6 @@ void setup() {
   } else {
     enterBootToSaver();
   }
-  // goTo(MODE_MENU);
 }
 
 void loop() {
@@ -5003,8 +4930,6 @@ void loop() {
     return;
   }
 
-  // BUG5 FIX: bloque dead code eliminado (false && ...) - la logica real esta abajo
-
   if (frfWantedForMode(mode)) {
     if (mode != MODE_FRIENDS_REQUESTING) frfEnsureHello();
     frfBackgroundTick();
@@ -5019,7 +4944,7 @@ void loop() {
   }
 
 
-  // ===== FIRST BOOT NICKNAME ======
+  // ===== NICKNAME DEL PRIMER ARRANQUE =====
   if (mode == MODE_FIRST_BOOT) {
 
     if (b.up) {
@@ -5043,7 +4968,7 @@ void loop() {
     if (isPressed(PUSH3PIN)) { // OK hold
       if (fbOkHoldStart == 0) fbOkHoldStart = millis();
       if (millis() - fbOkHoldStart >= 900) {
-        // === SAVE ===
+        // === GUARDAR ===
         char tmp[8]; memset(tmp,0,sizeof(tmp));
         memcpy(tmp, editNick, 7);
         for (int i=6;i>=0;i--) {
@@ -5074,7 +4999,7 @@ void loop() {
     return;
   }
 
-  // ===== MENU =====
+  // ===== MENÚ =====
   if (mode == MODE_MENU) {
     uint8_t total = menuCount();
 
@@ -5097,7 +5022,6 @@ void loop() {
       }
     }
 
-    // Mantener BACK presionado desde el menú principal = entrar al lock screen inmediatamente
     if (backHoldDetect(800)) {
       enterScreensaver();
       return;
@@ -5109,7 +5033,7 @@ void loop() {
     return;
   }
 
-  // ===== Learning =====
+  // ===== Learning (Aprendizaje) =====
   if (mode == MODE_LEARNING) {
     learningTick(b);
     powerLedsTick();
@@ -5163,12 +5087,10 @@ void loop() {
       }
     }
 
-    // HOLD OK TO SEND RF
     if (okHoldDetect(800)) {
 
-        // --- Guard: THE KEY must be solved first ---
         if (!keyVerified) {
-          // Orange flash effect
+          // Efecto de destello naranja
           for (int f=0; f<4; f++) {
             for (uint8_t j=0; j<NUM_LEDS; j++) leds[j] = CRGB(255, 80, 0);
             ledsMarkDirty(); ledsCommitIfNeeded();
@@ -5189,7 +5111,7 @@ void loop() {
           tft.fillScreen(COLBLACK);
           uiFrame();
           uiTitle("THE BOX");
-          uiMsgCenter("ERROR!", 110, 0xFBE0, 3); // orange
+          uiMsgCenter("ERROR!", 110, 0xFBE0, 3); // naranja
           {
             uint32_t t0 = millis();
             while (millis() - t0 < 800) { screensaverTick(); powerLedsTick(); /* ledTick(); */ delay(1); }
@@ -5211,7 +5133,6 @@ void loop() {
           delay(1);
           return;
         }
-        // --- End guard ---
         busForTFT();
         tft.fillScreen(COLBLACK);
         uiFrame();
@@ -5229,7 +5150,6 @@ void loop() {
         payload[14] = (uint8_t)(selfShortId & 0xFF);
         payload[15] = (uint8_t)(selfShortId >> 8);
 
-        // Disparamos 5 veces por fiabilidad
         for (int i=0; i<5; i++) {
           ccSendFixed32(payload);
           delay(50);
@@ -5267,7 +5187,7 @@ void loop() {
           uiTitle("FLAG 4 DISCOVERED");
           uiMsgCenter("HCRD{B0X-H4CK3D}", 110, COLNEON, 2);
           uiFooter("OK to continue");
-          
+
           // FLAG 4
           bool f4Aborted = false;
           while (true) {
@@ -5292,7 +5212,7 @@ void loop() {
           l5AccessEffect(false); // Destellos Rojos
         }
 
-        boxCodePos = 0; // reset cursor
+        boxCodePos = 0; // reiniciar cursor
         drawTheBox();
     }
 
@@ -5371,7 +5291,6 @@ void loop() {
         }
 
         keyDrawInCodeArea("ERROR!", COLRED, 3);
-        // Red LED blinking effect
         for (int i = 0; i < 6; i++) {
           for (int j = 0; j < NUM_LEDS; j++) leds[j] = CRGB::Red;
           FastLED.show();
@@ -5399,7 +5318,6 @@ void loop() {
         keyDrawInCodeArea("HCRD{K3Y-0P3N3D}", COLNEON, 2);
         uiFooter("OK to continue");
         
-        // FLAG 3 — espera OK press; permite screensaver (al despertar: rfEnsureForMode + no intro)
         bool f3Aborted = false;
         while (true) {
           screensaverTick();
@@ -5445,7 +5363,7 @@ void loop() {
     return;
   }
 
-  // ===== FRIEND REQ PROMPT =====
+  // ===== PROMPT DE SOLICITUD DE FRIEND =====
   if (mode == MODE_FRIEND_REQ_PROMPT) {
     if (frfReqPromptStartMs != 0 && (uint32_t)(millis() - frfReqPromptStartMs) > 10500) {
       lastIncomingReqFrom = frfReqFrom;
@@ -5473,13 +5391,10 @@ void loop() {
       uint16_t from = frfReqFrom;
       uint8_t bro  = frfReqBro;
 
-      // We received the friend request and showed it to the user. They accepted.
-      // We already have their Nickname in frfReqNick from the original REQ packet.
       const char* nickUse = frfReqNick[0] ? frfReqNick : "FRIEND";
       bool wasArmed = questAlienArmed;
       bool added = friendsAdd(from, nickUse, bro);
       
-      // Authorize and send our own nickname back to them via an ACK BEFORE doing long blocking UI stuff
       frfSendAckBurst(from, frfReqNonce);
 
       lastIncomingReqFrom = from;
@@ -5547,19 +5462,19 @@ void loop() {
     return;
   }
 
-  // ===== FRIENDS MENU =====
+  // ===== MENÚ DE FRIENDS =====
   if (mode == MODE_FRIENDS_MENU) {
     if (b.up)   { friendsMenuIndex = (friendsMenuIndex==0)?(FRIENDS_MENU_COUNT-1):(friendsMenuIndex-1); drawFriendsMenu(); }
     if (b.down) { friendsMenuIndex = (friendsMenuIndex+1)%FRIENDS_MENU_COUNT; drawFriendsMenu(); }
 
     if (b.ok) {
       if (friendsMenuIndex == 0) {
-        friendsScanClear(6000);          // <-- usa el cache RF real
+        friendsScanClear(6000);          // usa el cache RF real
         scanIndex = 0;                   // UI
         scanPhaseCollecting = true;
-        scanEndMs = frfScanEndMs;        // <-- sincroniza el countdown del footer
+        scanEndMs = frfScanEndMs;        // sincroniza el countdown del footer
 
-        goTo(MODE_FRIENDS_SCAN);         // <-- importante: aplica políticas de RF y dibuja
+        goTo(MODE_FRIENDS_SCAN);         // importante: aplica políticas de RF y dibuja
       } else if (friendsMenuIndex == 1) {
         friendsListIndex = 0;
         goTo(MODE_FRIENDS_LIST);
@@ -5574,13 +5489,12 @@ void loop() {
     return;
   }
 
-  // ===== FRIENDS SCAN =====
+  // ===== ESCANEO DE FRIENDS =====
   if (mode == MODE_FRIENDS_SCAN) {
 
     static uint8_t  lastHits = 255;
     static uint32_t lastDraw = 0;
 
-    // BUG4 FIX: resetear statics al (re-)entrar al modo
     if (frfScanNeedReset) {
       frfScanNeedReset = false;
       lastHits = 255;
@@ -5589,9 +5503,6 @@ void loop() {
 
     if (scanPhaseCollecting) {
       if (b.back) { scanPhaseCollecting = false; goTo(MODE_FRIENDS_MENU); powerLedsTick(); ledTick(); delay(1); return; }
-      // BUG6 FIX: frfEnsureHello() ya es llamado en el bloque global de frfWantedForMode (linea ~4817)
-      // no llamarlo de nuevo aqui para evitar doble llamada por ciclo de loop
-
       const uint32_t now = millis();
       if (scanHitsCount != lastHits) {
         lastHits = scanHitsCount;
@@ -5600,8 +5511,8 @@ void loop() {
         lastDraw = now;
       } else if ((now - lastDraw) >= 200) {
         lastDraw = now;
-        drawFriendsScan();       // Fuerza actualización de animación del título
-        drawFriendsScanFooter(); // Fuerza actualización del timer
+        drawFriendsScan();
+        drawFriendsScanFooter();
       }
 
       if ((int32_t)(now - scanEndMs) >= 0) {
@@ -5611,7 +5522,6 @@ void loop() {
         drawFriendsScanFooter();
       }
       
-      // Permitir navegar por la lista incluso si sigue "buscando" de fondo
       if (b.up && scanHitsCount > 0)   { scanIndex = (scanIndex==0)?(scanHitsCount-1):(scanIndex-1); drawFriendsScan(); }
       if (b.down && scanHitsCount > 0) { scanIndex = (scanIndex+1)%scanHitsCount; drawFriendsScan(); }
 
@@ -5632,13 +5542,12 @@ void loop() {
       }
       if (!backHoldFired && (millis() - backDownMs) >= HOLD_MS) {
         backHoldFired = true;
-        friendsScanClear(6000); // Trigger a 6-second rescan
+        friendsScanClear(6000);
         scanIndex = 0;
         scanPhaseCollecting = true;
         scanEndMs = frfScanEndMs;
         drawFriendsScan();
         drawFriendsScanFooter();
-        // Clear queue slightly to avoid ghosts
         b.back = false;
       }
     } else {
@@ -5679,7 +5588,7 @@ void loop() {
         frfAckFrom = 0;
 
         frfSendReqTo(requestTargetId, 2200);
-        scanPhaseCollecting = false;  // BUG9 FIX: salir de fase collecting antes de ir a REQUESTING
+        scanPhaseCollecting = false;
         goTo(MODE_FRIENDS_REQUESTING);
       }
     }
@@ -5690,7 +5599,7 @@ void loop() {
     return;
   }
 
-  // ===== FRIENDS REQUESTING =====
+  // ===== SOLICITUD DE FRIEND =====
   if (mode == MODE_FRIENDS_REQUESTING) {
     static const uint32_t REQ_TIMEOUT_MS = 10000;
     static const uint16_t resendIntervals[] = { 650, 900, 1200, 1600 };
@@ -5698,7 +5607,6 @@ void loop() {
     static uint32_t reqStartMs = 0;
     static uint32_t lastResend = 0;
 
-    // BUG3 FIX: resetear statics al (re-)entrar al modo para evitar timeout inmediato
     if (frfReqNeedReset) {
       frfReqNeedReset = false;
       reqStartMs  = 0;
@@ -5719,7 +5627,6 @@ void loop() {
       if (resendStage < 3) resendStage++;
     }
 
-    // ack?
     if (frfSeenAck && frfAckFrom == requestTargetId) {
 
       const char* nickUse = requestTargetNick[0] ? requestTargetNick : "FRIEND";
@@ -5737,10 +5644,6 @@ void loop() {
 
       bool added = friendsAdd(requestTargetId, nickUse, bro);
 
-      // We have the Nickname directly from the ACK, so no need for Profile bursts or 2-phase commit.
-      // Friend is added instantly.
-
-      // clear outgoing req session
       frfOutReqTo = 0;
       frfOutReqNonce = 0;
 
@@ -5784,7 +5687,6 @@ void loop() {
       goTo(MODE_FRIENDS_MENU);
     }
 
-    // nack?
     if (frfSeenNack && frfNackFrom == requestTargetId) {
       frfSeenNack = false;
       frfNackFrom = 0;
@@ -5807,7 +5709,6 @@ void loop() {
     // Se deshabilitó b.back para esperar forzosamente ACK, NACK o TIMEOUT
 
     if (reqStartMs != 0 && (uint32_t)(millis() - reqStartMs) > REQ_TIMEOUT_MS) {
-      // TIMEOUT
       busForTFT();
       tft.fillRect(4, 170, 232, 34, COLBLACK);
       uiMsgCenter("TIMEOUT", 176, COLDIM, 2);
@@ -5829,12 +5730,11 @@ void loop() {
     return;
   }
 
-  // ===== FRIENDS LIST =====
+  // ===== LISTA DE FRIENDS =====
   if (mode == MODE_FRIENDS_LIST) {
     static uint32_t backDownMs = 0;
     static bool backHoldFired = false;
 
-    // BUG4 FIX: resetear statics al (re-)entrar al modo
     if (frfListNeedReset) {
       frfListNeedReset = false;
       backDownMs    = 0;
@@ -5853,7 +5753,7 @@ void loop() {
     if (b.up)   { friendsListIndex = (friendsListIndex==0)?(friendsCount-1):(friendsListIndex-1); drawFriendsList(); }
     if (b.down) { friendsListIndex = (friendsListIndex+1)%friendsCount; drawFriendsList(); }
     
-    // ---- BACK handling (short release = delete, hold = exit) ----
+    // ---- Manejo de BACK (pulsación corta = borrar, mantener = salir) ----
     const uint16_t HOLD_MS = 900;
 
     if (isPressed(PUSH4PIN)) {
@@ -5926,7 +5826,7 @@ void loop() {
     return;
   }
 
-  // ===== FOX HUNTING =====
+  // ===== FOX HUNTING (CAZA DEL ZORRO) =====
   if (mode == MODE_FOX_HUNT) {
     static uint32_t lastUi=0;
     if (millis() - lastUi > 60) {
@@ -5947,7 +5847,7 @@ void loop() {
   }
 
 
-  // ===== SETTINGS =====
+  // ===== AJUSTES =====
   if (mode == MODE_SETTINGS) {
     if (settingsEdit == EDIT_NONE) {
       uint8_t total = (uint8_t)S_COUNT;
@@ -6211,7 +6111,7 @@ void loop() {
       if (isPressed(PUSH3PIN)) {
         if (okHoldStart == 0) okHoldStart = millis();
         if (millis() - okHoldStart >= 900) {
-          // === SAVE ===
+          // === GUARDAR ===
           char tmp[8]; memset(tmp,0,sizeof(tmp));
           memcpy(tmp, editNick, 7);
           for (int i=6;i>=0;i--) {
@@ -6331,9 +6231,8 @@ void loop() {
       return;
     }
   }
-  // goTo(MODE_MENU);
 
-  // ===== Games Menu =====
+  // ===== Menú de Juegos =====
   if (mode == MODE_GAMES_MENU) {
     if (b.up)   { gamesMenuIndex = (gamesMenuIndex == 0) ? (GAMES_MENU_COUNT-1) : (gamesMenuIndex-1); drawGamesMenu(); }
     if (b.down) { gamesMenuIndex = (gamesMenuIndex + 1) % GAMES_MENU_COUNT; drawGamesMenu(); }
@@ -6350,7 +6249,7 @@ void loop() {
     return;
   }
 
-  // ===== Dino Run =====
+  // ===== Dino Run (Carrera del Dino) =====
   if (mode == MODE_DINO) {
     dinoMusicTick();
     dinoTick(b);
@@ -6360,7 +6259,7 @@ void loop() {
     return;
   }
 
-  // ===== Maze =====
+  // ===== Maze (Laberinto) =====
   if (mode == MODE_MAZE) {
     gameMusicTick();
     gameTick(b);
@@ -6370,7 +6269,7 @@ void loop() {
     return;
   }
 
-  // ===== HackerMon =====
+  // ===== HackerMon (RPG) =====
   if (mode == MODE_HACKMON) {
     pkmMusicTick();
     hackerMonTick(b);
@@ -6380,7 +6279,7 @@ void loop() {
     return;
   }
 
-  // ===== Star Invaders =====
+  // ===== Star Invaders (Invasores Espaciales) =====
   if (mode == MODE_STAR_INVADERS) {
     siMusicTick();
     spaceInvadersTick(b);
