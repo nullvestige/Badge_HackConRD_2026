@@ -1,6 +1,6 @@
-# Badge HackConRD 2026 — v1.1
+# Badge HackConRD 2026 — v1.0
 
-Badge de conferencia hacker con firmware para **ESP32-C3**, diseñado para el evento HackConRD 2026. Proyecto originalmente desarrollado por Junior Restituyo.
+Firmware del Badge de la conferencia de hackers HackConRD 2026 desarrollado por Junior Restituyo.
 
 ---
 
