@@ -1,0 +1,15 @@
+App(
+    appid="hackconrd_badge",
+    name="HackConRD Badge",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="hackconrd_badge_app",
+    stack_size=4 * 1024,
+    fap_category="Games",
+    fap_icon="icon.png",
+    fap_file_assets="assets",
+    fap_version="1.0",
+    fap_author="HackConRD community",
+    fap_weburl="https://github.com/nullvestige/Badge_HackConRD_2026",
+    fap_description="Port of the HackConRD 2026 conference badge: CTF quest, RF lab, fox hunting, friends over Sub-GHz and four games.",
+    sources=["src/*.c", "src/games/*.c"],
+)
